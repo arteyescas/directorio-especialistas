@@ -62,6 +62,15 @@
             transform: scale(1) translateY(0);
         }
         
+        /* Ocultar barra de scroll para elementos horizontales fluidos */
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
         /* Scrollbar personalizado para el texto largo del modal */
         .custom-scrollbar::-webkit-scrollbar {
             width: 6px;
@@ -331,8 +340,6 @@
             const doc = doctoresData.find(d => d.id == id);
             if (!doc) return;
 
-            const waMessage = encodeURIComponent(`Hola, me recomendaron sus servicios médicos. Me gustaría solicitar información para una cita.`);
-
             // Cargar los datos en el Modal
             const fotoUrl = doc.foto || `https://placehold.co/150x150/14b8a6/ffffff?text=${doc.nombre ? doc.nombre.substring(0,2).toUpperCase() : 'DR'}`;
             document.getElementById('modalFoto').src = fotoUrl;
@@ -343,14 +350,56 @@
 
             // Crear los botones de contacto idénticos a los de la tarjeta
             const contactosHtml = `
-                <div class="grid grid-cols-4 gap-2">
-                    ${doc.whatsapp ? `<a href="https://wa.me/${doc.whatsapp}?text=${waMessage}" target="_blank" class="flex flex-col items-center justify-center p-2 rounded-lg bg-green-50 text-green-600 hover:bg-green-100 transition-colors" title="WhatsApp"><i class="fa-brands fa-whatsapp text-xl mb-1"></i><span class="text-[10px] font-medium">Chat</span></a>` : '<div class="flex flex-col items-center justify-center p-2 rounded-lg text-slate-300"><i class="fa-brands fa-whatsapp text-xl mb-1"></i></div>'}
+                <div class="flex flex-col gap-2">
+                    <!-- Teléfono Principal (No clickeable) -->
+                    ${doc.telefono 
+                        ? `<div class="flex items-center justify-center p-2.5 rounded-xl bg-slate-50 text-slate-700 border border-slate-200 shadow-sm w-full">
+                            <i class="fa-solid fa-phone text-blue-500 mr-2.5"></i>
+                            <span class="text-sm font-bold tracking-wide">${doc.telefono}</span>
+                           </div>` 
+                        : `<div class="flex items-center justify-center p-2.5 rounded-xl bg-slate-50 text-slate-400 border border-slate-100 w-full">
+                            <i class="fa-solid fa-phone-slash mr-2.5"></i>
+                            <span class="text-sm font-medium">Sin teléfono</span>
+                           </div>`
+                    }
                     
-                    ${doc.telefono ? `<a href="tel:${doc.telefono.replace(/\s+/g, '')}" class="flex flex-col items-center justify-center p-2 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors" title="Llamar"><i class="fa-solid fa-phone text-xl mb-1"></i><span class="text-[10px] font-medium">Llamar</span></a>` : '<div class="flex flex-col items-center justify-center p-2 rounded-lg text-slate-300"><i class="fa-solid fa-phone text-xl mb-1"></i></div>'}
+                    <!-- WhatsApp (No clickeable) -->
+                    ${doc.whatsapp 
+                        ? `<div class="flex items-center justify-center p-2.5 rounded-xl bg-slate-50 text-slate-700 border border-slate-200 shadow-sm w-full">
+                            <i class="fa-brands fa-whatsapp text-green-500 text-lg mr-2.5"></i>
+                            <span class="text-sm font-bold tracking-wide">${doc.whatsapp}</span>
+                           </div>` 
+                        : `<div class="flex items-center justify-center p-2.5 rounded-xl bg-slate-50 text-slate-400 border border-slate-100 w-full">
+                            <i class="fa-brands fa-whatsapp text-lg mr-2.5 opacity-50"></i>
+                            <span class="text-sm font-medium">Sin WhatsApp</span>
+                           </div>`
+                    }
                     
-                    ${doc.email ? `<a href="mailto:${doc.email}" class="flex flex-col items-center justify-center p-2 rounded-lg bg-purple-50 text-purple-600 hover:bg-purple-100 transition-colors" title="Correo"><i class="fa-regular fa-envelope text-xl mb-1"></i><span class="text-[10px] font-medium">Email</span></a>` : '<div class="flex flex-col items-center justify-center p-2 rounded-lg text-slate-300"><i class="fa-regular fa-envelope text-xl mb-1"></i></div>'}
+                    <!-- Email (No clickeable) -->
+                    ${doc.email 
+                        ? `<div class="flex items-center p-2.5 rounded-xl bg-slate-50 text-slate-700 border border-slate-200 shadow-sm w-full min-w-0">
+                            <i class="fa-regular fa-envelope text-purple-500 text-lg sm:text-xl ml-1 mr-2 flex-shrink-0"></i>
+                            <div class="overflow-x-auto hide-scrollbar min-w-0 w-full text-center pr-2">
+                                <span class="text-[10.5px] sm:text-[11.5px] font-bold tracking-tight whitespace-nowrap select-all cursor-text">${doc.email}</span>
+                            </div>
+                           </div>` 
+                        : `<div class="flex items-center justify-center p-2.5 rounded-xl bg-slate-50 text-slate-400 border border-slate-100 w-full">
+                            <i class="fa-regular fa-envelope text-lg sm:text-xl mr-2 opacity-50 flex-shrink-0"></i>
+                            <span class="text-[10.5px] sm:text-[11.5px] font-medium">Sin Email</span>
+                           </div>`
+                    }
                     
-                    ${doc.mapaurl ? `<a href="${doc.mapaurl}" target="_blank" class="flex flex-col items-center justify-center p-2 rounded-lg bg-red-50 text-red-500 hover:bg-red-100 transition-colors" title="Ver en Mapa"><i class="fa-solid fa-map-location-dot text-xl mb-1"></i><span class="text-[10px] font-medium">Mapa</span></a>` : '<div class="flex flex-col items-center justify-center p-2 rounded-lg text-slate-300"><i class="fa-solid fa-map-location-dot text-xl mb-1"></i></div>'}
+                    <!-- Mapa (Clickeable) -->
+                    ${doc.mapaurl 
+                        ? `<a href="${doc.mapaurl}" target="_blank" class="flex items-center justify-center p-2.5 rounded-xl bg-red-50 text-red-600 hover:bg-red-100 border border-red-100 transition-colors shadow-sm w-full">
+                            <i class="fa-solid fa-map-location-dot text-lg mr-2.5 flex-shrink-0"></i>
+                            <span class="text-sm font-bold tracking-wide">Abrir Mapa</span>
+                           </a>` 
+                        : `<div class="flex items-center justify-center p-2.5 rounded-xl bg-slate-50 text-slate-400 border border-slate-100 w-full">
+                            <i class="fa-solid fa-map-location-dot text-lg mr-2.5 opacity-50 flex-shrink-0"></i>
+                            <span class="text-sm font-medium">Sin Mapa</span>
+                           </div>`
+                    }
                 </div>
             `;
             document.getElementById('modalContactos').innerHTML = contactosHtml;
@@ -384,9 +433,6 @@
                 // Ajustado para expandirse a lo ancho y usar formato horizontal en pantallas grandes
                 card.className = 'doctor-card bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden flex flex-col md:flex-row w-full';
                 
-                // Formatear mensaje para WhatsApp
-                const waMessage = encodeURIComponent(`Hola, me recomendaron sus servicios médicos. Me gustaría solicitar información para una cita.`);
-                
                 // Manejar valores vacíos o faltantes de forma segura
                 const fotoUrl = doc.foto || `https://placehold.co/150x150/14b8a6/ffffff?text=${doc.nombre ? doc.nombre.substring(0,2).toUpperCase() : 'DR'}`;
                 const nombreDoc = doc.nombre || 'Nombre no disponible';
@@ -411,7 +457,7 @@
                             <div class="md:hidden flex-shrink-0">
                                 ${doc.costo 
                                     ? `<div class="flex items-center text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg text-sm font-bold border border-emerald-100 whitespace-nowrap shadow-sm">
-                                        <i class="fa-solid fa-dollar-sign mr-1 text-xs opacity-70"></i> ${parseFloat(doc.costo).toFixed(2)}
+                                        <i class="fa-solid fa-money-bill-1-wave mr-1.5 text-xs opacity-70"></i> ${doc.costo}
                                        </div>` 
                                     : `<div class="flex items-center text-slate-500 bg-slate-100 px-2 py-1 rounded-lg text-xs font-medium border border-slate-200 whitespace-nowrap">
                                         No disp.
@@ -439,7 +485,7 @@
                         <div class="hidden md:flex justify-end mb-4">
                             ${doc.costo 
                                 ? `<div class="flex items-center text-emerald-700 bg-emerald-50 px-3 py-1.5 rounded-lg text-sm font-bold border border-emerald-100 whitespace-nowrap shadow-sm">
-                                    <i class="fa-solid fa-dollar-sign mr-1 text-xs opacity-70"></i> ${parseFloat(doc.costo).toFixed(2)}
+                                    <i class="fa-solid fa-money-bill-1-wave mr-1.5 text-xs opacity-70"></i> ${doc.costo}
                                    </div>` 
                                 : `<div class="flex items-center text-slate-500 bg-slate-100 px-3 py-1.5 rounded-lg text-xs font-medium border border-slate-200 whitespace-nowrap">
                                     No disp.
@@ -448,14 +494,56 @@
                         </div>
                         
                         <!-- Botones de contacto -->
-                        <div class="grid grid-cols-4 md:grid-cols-2 gap-2 mt-auto">
-                            ${doc.whatsapp ? `<a href="https://wa.me/${doc.whatsapp}?text=${waMessage}" target="_blank" class="flex flex-col items-center justify-center p-2 sm:p-3 rounded-lg bg-green-50 text-green-600 hover:bg-green-100 transition-colors tooltip" title="WhatsApp"><i class="fa-brands fa-whatsapp text-xl mb-1"></i><span class="text-[10px] sm:text-xs font-medium">Chat</span></a>` : '<div class="flex flex-col items-center justify-center p-2 sm:p-3 rounded-lg text-slate-300"><i class="fa-brands fa-whatsapp text-xl mb-1"></i><span class="text-[10px] sm:text-xs font-medium">Chat</span></div>'}
+                        <div class="flex flex-col gap-2 mt-auto">
+                            <!-- Teléfono Principal (No clickeable) -->
+                            ${doc.telefono 
+                                ? `<div class="flex items-center justify-center p-2.5 rounded-xl bg-slate-50 text-slate-700 border border-slate-200 shadow-sm w-full">
+                                    <i class="fa-solid fa-phone text-blue-500 mr-2.5"></i>
+                                    <span class="text-sm sm:text-base font-bold tracking-wide">${doc.telefono}</span>
+                                   </div>` 
+                                : `<div class="flex items-center justify-center p-2.5 rounded-xl bg-slate-50 text-slate-400 border border-slate-100 w-full">
+                                    <i class="fa-solid fa-phone-slash mr-2.5"></i>
+                                    <span class="text-sm font-medium">Sin teléfono</span>
+                                   </div>`
+                            }
                             
-                            ${doc.telefono ? `<a href="tel:${doc.telefono.replace(/\s+/g, '')}" class="flex flex-col items-center justify-center p-2 sm:p-3 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors" title="Llamar"><i class="fa-solid fa-phone text-xl mb-1"></i><span class="text-[10px] sm:text-xs font-medium">Llamar</span></a>` : '<div class="flex flex-col items-center justify-center p-2 sm:p-3 rounded-lg text-slate-300"><i class="fa-solid fa-phone text-xl mb-1"></i><span class="text-[10px] sm:text-xs font-medium">Llamar</span></div>'}
+                            <!-- WhatsApp (No clickeable) -->
+                            ${doc.whatsapp 
+                                ? `<div class="flex items-center justify-center p-2.5 rounded-xl bg-slate-50 text-slate-700 border border-slate-200 shadow-sm w-full">
+                                    <i class="fa-brands fa-whatsapp text-green-500 text-lg sm:text-xl mr-2.5"></i>
+                                    <span class="text-sm sm:text-base font-bold tracking-wide">${doc.whatsapp}</span>
+                                   </div>` 
+                                : `<div class="flex items-center justify-center p-2.5 rounded-xl bg-slate-50 text-slate-400 border border-slate-100 w-full">
+                                    <i class="fa-brands fa-whatsapp text-lg sm:text-xl mr-2.5 opacity-50"></i>
+                                    <span class="text-sm font-medium">Sin WhatsApp</span>
+                                   </div>`
+                            }
                             
-                            ${doc.email ? `<a href="mailto:${doc.email}" class="flex flex-col items-center justify-center p-2 sm:p-3 rounded-lg bg-purple-50 text-purple-600 hover:bg-purple-100 transition-colors" title="Correo"><i class="fa-regular fa-envelope text-xl mb-1"></i><span class="text-[10px] sm:text-xs font-medium">Email</span></a>` : '<div class="flex flex-col items-center justify-center p-2 sm:p-3 rounded-lg text-slate-300"><i class="fa-regular fa-envelope text-xl mb-1"></i><span class="text-[10px] sm:text-xs font-medium">Email</span></div>'}
+                            <!-- Email (No clickeable) -->
+                            ${doc.email 
+                                ? `<div class="flex items-center p-2.5 rounded-xl bg-slate-50 text-slate-700 border border-slate-200 shadow-sm w-full min-w-0">
+                                    <i class="fa-regular fa-envelope text-purple-500 text-lg sm:text-xl ml-1 mr-2 flex-shrink-0"></i>
+                                    <div class="overflow-x-auto hide-scrollbar min-w-0 w-full text-center pr-2">
+                                        <span class="text-[10.5px] sm:text-[11.5px] font-bold tracking-tight whitespace-nowrap select-all cursor-text">${doc.email}</span>
+                                    </div>
+                                   </div>` 
+                                : `<div class="flex items-center justify-center p-2.5 rounded-xl bg-slate-50 text-slate-400 border border-slate-100 w-full">
+                                    <i class="fa-regular fa-envelope text-lg sm:text-xl mr-2 opacity-50 flex-shrink-0"></i>
+                                    <span class="text-[10.5px] sm:text-[11.5px] font-medium">Sin Email</span>
+                                   </div>`
+                            }
                             
-                            ${doc.mapaurl ? `<a href="${doc.mapaurl}" target="_blank" class="flex flex-col items-center justify-center p-2 sm:p-3 rounded-lg bg-red-50 text-red-500 hover:bg-red-100 transition-colors" title="Ver en Mapa"><i class="fa-solid fa-map-location-dot text-xl mb-1"></i><span class="text-[10px] sm:text-xs font-medium">Mapa</span></a>` : '<div class="flex flex-col items-center justify-center p-2 sm:p-3 rounded-lg text-slate-300"><i class="fa-solid fa-map-location-dot text-xl mb-1"></i><span class="text-[10px] sm:text-xs font-medium">Mapa</span></div>'}
+                            <!-- Mapa (Clickeable) -->
+                            ${doc.mapaurl 
+                                ? `<a href="${doc.mapaurl}" target="_blank" class="flex items-center justify-center p-2.5 rounded-xl bg-red-50 text-red-600 hover:bg-red-100 border border-red-100 transition-colors shadow-sm w-full">
+                                    <i class="fa-solid fa-map-location-dot text-lg sm:text-xl mr-2.5 flex-shrink-0"></i>
+                                    <span class="text-sm font-bold tracking-wide">Abrir Mapa</span>
+                                   </a>` 
+                                : `<div class="flex items-center justify-center p-2.5 rounded-xl bg-slate-50 text-slate-400 border border-slate-100 w-full">
+                                    <i class="fa-solid fa-map-location-dot text-lg sm:text-xl mr-2.5 opacity-50 flex-shrink-0"></i>
+                                    <span class="text-sm font-medium">Sin Mapa</span>
+                                   </div>`
+                            }
                         </div>
                     </div>
                 `;
