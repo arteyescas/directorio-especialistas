@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mi Directorio Médico de Confianza</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        primary: {
+                            50: '#f0fdfa',
+                            100: '#ccfbf1',
+                            500: '#14b8a6', // Teal principal
+                            600: '#0d9488',
+                            700: '#0f766e',
+                        },
+                        secondary: '#475569',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Estilos generales adicionales */
+        body {
+            background-color: #f8fafc; /* Gris muy claro para el fondo */
+        }
+        
+        /* Animación suave para hover en tarjetas */
+        .doctor-card {
+            transition: all 0.3s ease;
+        }
+        .doctor-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Animaciones y estilos del Modal */
+        .modal-overlay {
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease-out;
+        }
+        .modal-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+        .modal-content {
+            transform: scale(0.95) translateY(15px);
+            transition: all 0.3s ease-out;
+        }
+        .modal-overlay.active .modal-content {
+            transform: scale(1) translateY(0);
+        }
+        
+        /* Scrollbar personalizado para el texto largo del modal */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent; 
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #cbd5e1; 
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8; 
+        }
+    </style>
+</head>
+<body class="text-slate-800 font-sans antialiased">
+
+    <header class="bg-white shadow-sm sticky top-0 z-10">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+            <div class="flex flex-col sm:flex-row justify-between items-center">
+                <div class="flex items-center mb-4 sm:mb-0">
+                    <div class="bg-primary-500 text-white p-2 rounded-lg mr-3 shadow-md">
+                        <i class="fa-solid fa-heart-pulse text-xl"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-2xl font-bold text-slate-800">Directorio Médico</h1>
+                        <p class="text-sm text-slate-500">Mis especialistas recomendados</p>
+                    </div>
+                </div>
+                
+                <!-- Controles de navegación y búsqueda -->
+                <div class="flex items-center w-full sm:w-auto space-x-4">
+                    <div class="relative w-full sm:w-64">
+                        <input type="text" id="searchInput" placeholder="Buscar por nombre o especialidad..." class="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-full focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent text-sm shadow-sm transition-shadow">
+                        <div class="absolute left-3 top-2.5 text-slate-400">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Filtros por especialidad -->
+            <div class="mt-4 flex overflow-x-auto pb-2 space-x-2 hide-scrollbar" id="filtersContainer">
+                <button class="filter-btn active whitespace-nowrap px-4 py-1.5 rounded-full text-sm font-medium bg-primary-50 text-primary-700 border border-primary-200 transition-colors" data-filter="todos">Todos</button>
+                <button class="filter-btn whitespace-nowrap px-4 py-1.5 rounded-full text-sm font-medium bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 transition-colors" data-filter="cardiologia">Cardiología</button>
+                <button class="filter-btn whitespace-nowrap px-4 py-1.5 rounded-full text-sm font-medium bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 transition-colors" data-filter="pediatria">Pediatría</button>
+                <button class="filter-btn whitespace-nowrap px-4 py-1.5 rounded-full text-sm font-medium bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 transition-colors" data-filter="dermatologia">Dermatología</button>
+                <button class="filter-btn whitespace-nowrap px-4 py-1.5 rounded-full text-sm font-medium bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 transition-colors" data-filter="odontologia">Odontología</button>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        
+        <!-- Estado de carga (Simulación de obtención de datos) -->
+        <div id="loadingState" class="flex flex-col items-center justify-center py-20">
+            <i class="fa-solid fa-circle-notch fa-spin text-4xl text-primary-500 mb-4"></i>
+            <p class="text-slate-500 font-medium">Cargando directorio desde Google Sheets...</p>
+        </div>
+
+        <div id="mainView" style="display: none;">
+            <!-- Contenedor del Grid ajustado a todo el ancho -->
+            <div id="doctorsGrid" class="grid grid-cols-1 gap-6 w-full">
+                <!-- Las tarjetas se insertarán aquí por JavaScript -->
+            </div>
+        </div>
+        
+        <!-- Mensaje de no resultados -->
+        <div id="noResults" class="hidden flex flex-col items-center justify-center py-16 text-center">
+            <div class="bg-slate-100 p-4 rounded-full mb-4">
+                <i class="fa-solid fa-user-doctor text-3xl text-slate-400"></i>
+            </div>
+            <h3 class="text-lg font-medium text-slate-800">No se encontraron especialistas</h3>
+            <p class="text-slate-500 mt-1 max-w-md">Intenta buscar con otros términos o selecciona otra categoría.</p>
+            <button onclick="document.getElementById('searchInput').value=''; filterDoctors();" class="mt-4 text-primary-600 font-medium hover:text-primary-700 underline decoration-2 underline-offset-2">Limpiar búsqueda</button>
+        </div>
+
+    </main>
+
+    <!-- Ventana Emergente (Modal) para leer detalles completos -->
+    <div id="doctorModal" class="modal-overlay fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 sm:p-6">
+        <!-- Contenedor principal del modal -->
+        <div class="modal-content bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh]">
+            
+            <!-- Header del Modal -->
+            <div class="flex justify-between items-start p-5 sm:p-6 border-b border-slate-100 bg-white">
+                <div class="flex items-center space-x-4 min-w-0">
+                    <img id="modalFoto" src="" alt="Doctor" class="w-14 h-14 sm:w-16 sm:h-16 rounded-full object-cover border-2 border-primary-100 shadow-sm flex-shrink-0">
+                    <div class="min-w-0">
+                        <h3 id="modalNombre" class="text-lg sm:text-xl font-bold text-slate-800 leading-tight truncate"></h3>
+                        <span id="modalEspecialidad" class="inline-block mt-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary-50 text-primary-700 truncate max-w-full"></span>
+                    </div>
+                </div>
+                <button onclick="closeModal()" class="flex-shrink-0 text-slate-400 hover:text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-full w-8 h-8 flex items-center justify-center transition-colors focus:outline-none ml-2">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            
+            <!-- Cuerpo del Modal (Donde va el texto largo y se puede hacer scroll) -->
+            <div class="p-5 sm:p-6 overflow-y-auto custom-scrollbar bg-slate-50 flex-1">
+                <h4 class="text-sm font-bold text-slate-800 mb-3 flex items-center"><i class="fa-solid fa-quote-left text-primary-400 mr-2"></i> Mi recomendación:</h4>
+                <p id="modalDescripcion" class="text-slate-600 whitespace-pre-line leading-relaxed text-sm"></p>
+                
+                <div class="mt-6 pt-4 border-t border-slate-200/60">
+                    <div class="flex items-start text-sm text-slate-600">
+                        <i class="fa-solid fa-location-dot w-5 mt-0.5 text-slate-400 flex-shrink-0"></i>
+                        <span id="modalDireccion" class="font-medium"></span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Footer del Modal (Botones de contacto clonados) -->
+            <div id="modalContactos" class="bg-white p-4 border-t border-slate-100">
+                <!-- Se inyectan dinámicamente -->
+            </div>
+        </div>
+    </div>
+
+    <footer class="bg-slate-900 text-slate-300 py-8 mt-12">
+        <div class="max-w-6xl mx-auto px-4 text-center">
+            <i class="fa-solid fa-stethoscope text-2xl text-primary-500 mb-4"></i>
+            <p class="text-sm">Directorio Médico Personal &copy; 2026.</p>
+            <p class="text-xs text-slate-500 mt-2">Los datos presentados aquí provienen de una hoja de Google Sheets.</p>
+        </div>
+    </footer>
+
+    <script>
+        const GOOGLE_SHEETS_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSaIN3KY82cPuYCcq9NEhMCSyMY6F5G22FBa_TPfjidInsR7NRJvUmAVl95yNOEbUPk-sliDjLBpim9/pub?output=csv';
+        let doctoresData = [];
+        let currentCategory = 'todos';
+        let doctoresFiltrados = [];
+
+        // Función auxiliar para convertir CSV a JSON (sin usar librerías externas)
+        function csvToJson(csv) {
+            const lines = csv.split(/\r?\n/);
+            if (lines.length < 2) return []; // Retornar vacío si no hay suficientes datos
+
+            // Obtener encabezados
+            const headers = lines[0].split(',').map(header => header.trim().toLowerCase());
+            const result = [];
+
+            // Iterar sobre las filas de datos
+            for (let i = 1; i < lines.length; i++) {
+                if (!lines[i].trim()) continue; // Saltar líneas vacías
+
+                // Manejar comas dentro de valores entre comillas (Ej: "Torre Médica, Consultorio 1")
+                let obj = {};
+                let currentLine = lines[i];
+                let row = [];
+                let inQuotes = false;
+                let currentValue = '';
+
+                for (let char of currentLine) {
+                    if (char === '"') {
+                        inQuotes = !inQuotes;
+                    } else if (char === ',' && !inQuotes) {
+                        row.push(currentValue);
+                        currentValue = '';
+                    } else {
+                        currentValue += char;
+                    }
+                }
+                row.push(currentValue); // Agregar el último valor
+
+                // Mapear valores a los encabezados
+                headers.forEach((header, index) => {
+                    // Limpiar comillas iniciales y finales si existen
+                    let val = (row[index] || '').trim();
+                    if (val.startsWith('"') && val.endsWith('"')) {
+                        val = val.substring(1, val.length - 1);
+                    }
+                    obj[header] = val;
+                });
+                
+                // Generar un ID único simple si no existe
+                if(!obj.id) obj.id = i;
+                
+                result.push(obj);
+            }
+            return result;
+        }
+
+        async function fetchGoogleSheetsData() {
+            try {
+                const response = await fetch(GOOGLE_SHEETS_CSV_URL);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const csvText = await response.text();
+                
+                // Convertir CSV a Array de Objetos
+                doctoresData = csvToJson(csvText);
+                
+                // Generar categorías únicas dinámicamente basadas en los datos
+                generarFiltros(doctoresData);
+
+                doctoresFiltrados = [...doctoresData];
+                
+                // Ocultar loader y mostrar UI
+                document.getElementById('loadingState').style.display = 'none';
+                document.getElementById('mainView').style.display = 'block';
+                
+                updateUI();
+
+            } catch (error) {
+                console.error("Error al cargar los datos desde Google Sheets:", error);
+                document.getElementById('loadingState').innerHTML = `
+                    <i class="fa-solid fa-triangle-exclamation text-4xl text-red-500 mb-4"></i>
+                    <p class="text-slate-700 font-medium text-center">No se pudieron cargar los datos.</p>
+                    <p class="text-slate-500 text-sm mt-2 text-center max-w-md">Verifica que el enlace de Google Sheets sea correcto y esté publicado en la web como CSV.</p>
+                `;
+            }
+        }
+
+        function generarFiltros(data) {
+            const container = document.getElementById('filtersContainer');
+            // Mantener el botón de "Todos"
+            container.innerHTML = '<button class="filter-btn active whitespace-nowrap px-4 py-1.5 rounded-full text-sm font-medium bg-primary-50 text-primary-700 border border-primary-200 transition-colors" data-filter="todos">Todos</button>';
+            
+            // Obtener categorías únicas, ignorando vacías
+            const categorias = [...new Set(data.map(doc => doc.categoria).filter(cat => cat))];
+            
+            categorias.forEach(cat => {
+                // Capitalizar primera letra para mostrar
+                const catLabel = cat.charAt(0).toUpperCase() + cat.slice(1);
+                
+                const btn = document.createElement('button');
+                btn.className = "filter-btn whitespace-nowrap px-4 py-1.5 rounded-full text-sm font-medium bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 transition-colors";
+                btn.setAttribute('data-filter', cat);
+                btn.textContent = catLabel;
+                
+                container.appendChild(btn);
+            });
+            
+            // Re-asignar event listeners a los nuevos botones
+            asignarEventosFiltros();
+        }
+
+        function asignarEventosFiltros() {
+            const botonesFiltro = document.querySelectorAll('.filter-btn');
+            botonesFiltro.forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    // Remover estado activo de todos los botones
+                    botonesFiltro.forEach(b => {
+                        b.classList.remove('active', 'bg-primary-50', 'text-primary-700', 'border-primary-200');
+                        b.classList.add('bg-white', 'text-slate-600', 'border-slate-200', 'hover:bg-slate-50');
+                    });
+                    
+                    // Agregar estado activo al botón clickeado
+                    const btnClickeado = e.currentTarget;
+                    btnClickeado.classList.remove('bg-white', 'text-slate-600', 'border-slate-200', 'hover:bg-slate-50');
+                    btnClickeado.classList.add('active', 'bg-primary-50', 'text-primary-700', 'border-primary-200');
+                    
+                    // Actualizar categoría actual y aplicar filtro
+                    currentCategory = btnClickeado.getAttribute('data-filter');
+                    filterDoctors();
+                });
+            });
+        }
+
+        // --- 2. FUNCIONES PARA RENDERIZAR LAS VISTAS ---
+
+        // Función para abrir la ventana modal
+        function openModal(id) {
+            // Buscar la información del doctor exacto al que se le dio clic
+            const doc = doctoresData.find(d => d.id == id);
+            if (!doc) return;
+
+            const waMessage = encodeURIComponent(`Hola, me recomendaron sus servicios médicos. Me gustaría solicitar información para una cita.`);
+
+            // Cargar los datos en el Modal
+            const fotoUrl = doc.foto || `https://placehold.co/150x150/14b8a6/ffffff?text=${doc.nombre ? doc.nombre.substring(0,2).toUpperCase() : 'DR'}`;
+            document.getElementById('modalFoto').src = fotoUrl;
+            document.getElementById('modalNombre').textContent = doc.nombre || 'Nombre no disponible';
+            document.getElementById('modalEspecialidad').textContent = doc.especialidad || 'Especialidad no especificada';
+            document.getElementById('modalDescripcion').textContent = doc.descripcion || 'Sin descripción disponible.';
+            document.getElementById('modalDireccion').textContent = doc.direccion || 'Dirección no disponible';
+
+            // Crear los botones de contacto idénticos a los de la tarjeta
+            const contactosHtml = `
+                <div class="grid grid-cols-4 gap-2">
+                    ${doc.whatsapp ? `<a href="https://wa.me/${doc.whatsapp}?text=${waMessage}" target="_blank" class="flex flex-col items-center justify-center p-2 rounded-lg bg-green-50 text-green-600 hover:bg-green-100 transition-colors" title="WhatsApp"><i class="fa-brands fa-whatsapp text-xl mb-1"></i><span class="text-[10px] font-medium">Chat</span></a>` : '<div class="flex flex-col items-center justify-center p-2 rounded-lg text-slate-300"><i class="fa-brands fa-whatsapp text-xl mb-1"></i></div>'}
+                    
+                    ${doc.telefono ? `<a href="tel:${doc.telefono.replace(/\s+/g, '')}" class="flex flex-col items-center justify-center p-2 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors" title="Llamar"><i class="fa-solid fa-phone text-xl mb-1"></i><span class="text-[10px] font-medium">Llamar</span></a>` : '<div class="flex flex-col items-center justify-center p-2 rounded-lg text-slate-300"><i class="fa-solid fa-phone text-xl mb-1"></i></div>'}
+                    
+                    ${doc.email ? `<a href="mailto:${doc.email}" class="flex flex-col items-center justify-center p-2 rounded-lg bg-purple-50 text-purple-600 hover:bg-purple-100 transition-colors" title="Correo"><i class="fa-regular fa-envelope text-xl mb-1"></i><span class="text-[10px] font-medium">Email</span></a>` : '<div class="flex flex-col items-center justify-center p-2 rounded-lg text-slate-300"><i class="fa-regular fa-envelope text-xl mb-1"></i></div>'}
+                    
+                    ${doc.mapaurl ? `<a href="${doc.mapaurl}" target="_blank" class="flex flex-col items-center justify-center p-2 rounded-lg bg-red-50 text-red-500 hover:bg-red-100 transition-colors" title="Ver en Mapa"><i class="fa-solid fa-map-location-dot text-xl mb-1"></i><span class="text-[10px] font-medium">Mapa</span></a>` : '<div class="flex flex-col items-center justify-center p-2 rounded-lg text-slate-300"><i class="fa-solid fa-map-location-dot text-xl mb-1"></i></div>'}
+                </div>
+            `;
+            document.getElementById('modalContactos').innerHTML = contactosHtml;
+
+            // Mostrar el modal y bloquear el scroll de la página de fondo
+            const modal = document.getElementById('doctorModal');
+            modal.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+
+        // Función para cerrar la ventana modal
+        function closeModal() {
+            const modal = document.getElementById('doctorModal');
+            modal.classList.remove('active');
+            document.body.style.overflow = ''; // Restaurar scroll
+        }
+
+        // Evento para cerrar el modal si el usuario hace clic fuera de la caja blanca
+        document.getElementById('doctorModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeModal();
+            }
+        });
+
+        function renderGrid(doctores) {
+            const container = document.getElementById('doctorsGrid');
+            container.innerHTML = '';
+
+            doctores.forEach(doc => {
+                const card = document.createElement('div');
+                // Ajustado para expandirse a lo ancho y usar formato horizontal en pantallas grandes
+                card.className = 'doctor-card bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden flex flex-col md:flex-row w-full';
+                
+                // Formatear mensaje para WhatsApp
+                const waMessage = encodeURIComponent(`Hola, me recomendaron sus servicios médicos. Me gustaría solicitar información para una cita.`);
+                
+                // Manejar valores vacíos o faltantes de forma segura
+                const fotoUrl = doc.foto || `https://placehold.co/150x150/14b8a6/ffffff?text=${doc.nombre ? doc.nombre.substring(0,2).toUpperCase() : 'DR'}`;
+                const nombreDoc = doc.nombre || 'Nombre no disponible';
+                const especialidadDoc = doc.especialidad || 'Especialidad no especificada';
+                const subespecialidadHtml = doc.subespecialidad ? `<p class="text-sm text-slate-600 mb-2 truncate" title="${doc.subespecialidad}"><i class="fa-solid fa-stethoscope w-5 text-slate-400"></i> ${doc.subespecialidad}</p>` : '';
+                const direccionDoc = doc.direccion || 'Dirección no disponible';
+                const descripcionDoc = doc.descripcion || 'Sin descripción disponible.';
+
+                card.innerHTML = `
+                    <div class="p-5 sm:p-6 flex flex-col flex-1 min-w-0">
+                        <div class="flex justify-between items-start mb-4 gap-3">
+                            <div class="flex items-center space-x-3 sm:space-x-4 flex-1 min-w-0">
+                                <img src="${fotoUrl}" alt="${nombreDoc}" class="w-14 h-14 sm:w-16 sm:h-16 rounded-full object-cover border-2 border-primary-100 shadow-sm flex-shrink-0" onerror="this.src='https://placehold.co/150x150/14b8a6/ffffff?text=?'">
+                                <div class="min-w-0 flex-1">
+                                    <h3 class="text-base sm:text-xl font-bold text-slate-800 leading-tight truncate" title="${nombreDoc}">${nombreDoc}</h3>
+                                    <span class="inline-block mt-1 px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-full text-xs font-medium bg-primary-50 text-primary-700 truncate max-w-full" title="${especialidadDoc}">
+                                        ${especialidadDoc}
+                                    </span>
+                                </div>
+                            </div>
+                            <!-- Costo en móvil (Oculto en desktop) -->
+                            <div class="md:hidden flex-shrink-0">
+                                ${doc.costo 
+                                    ? `<div class="flex items-center text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg text-sm font-bold border border-emerald-100 whitespace-nowrap shadow-sm">
+                                        <i class="fa-solid fa-dollar-sign mr-1 text-xs opacity-70"></i> ${parseFloat(doc.costo).toFixed(2)}
+                                       </div>` 
+                                    : `<div class="flex items-center text-slate-500 bg-slate-100 px-2 py-1 rounded-lg text-xs font-medium border border-slate-200 whitespace-nowrap">
+                                        No disp.
+                                       </div>`
+                                }
+                            </div>
+                        </div>
+                        
+                        <!-- Contenido y descripción -->
+                        <div class="flex-1">
+                            ${subespecialidadHtml}
+                            <p class="text-sm text-slate-600 mb-3 sm:mb-4 line-clamp-2" title="${direccionDoc}"><i class="fa-solid fa-location-dot w-5 text-slate-400"></i> ${direccionDoc}</p>
+                            
+                            <div class="bg-slate-50 rounded-xl p-3 sm:p-4 border border-slate-100/50 mt-auto">
+                                <p class="text-sm text-slate-600 italic line-clamp-3">"${descripcionDoc}"</p>
+                                ${descripcionDoc.length > 90 ? `<button onclick="openModal('${doc.id}')" class="text-primary-600 text-xs font-semibold mt-2 hover:text-primary-700 transition-colors cursor-pointer flex items-center focus:outline-none"><i class="fa-solid fa-expand mr-1.5 opacity-70"></i> Leer reseña completa</button>` : ''}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Panel derecho (Desktop) / Inferior (Móvil) con acciones -->
+                    <div class="bg-slate-50 p-4 sm:p-6 border-t md:border-t-0 md:border-l border-slate-100 flex flex-col justify-between md:w-64 lg:w-72 flex-shrink-0">
+                        
+                        <!-- Costo en Desktop -->
+                        <div class="hidden md:flex justify-end mb-4">
+                            ${doc.costo 
+                                ? `<div class="flex items-center text-emerald-700 bg-emerald-50 px-3 py-1.5 rounded-lg text-sm font-bold border border-emerald-100 whitespace-nowrap shadow-sm">
+                                    <i class="fa-solid fa-dollar-sign mr-1 text-xs opacity-70"></i> ${parseFloat(doc.costo).toFixed(2)}
+                                   </div>` 
+                                : `<div class="flex items-center text-slate-500 bg-slate-100 px-3 py-1.5 rounded-lg text-xs font-medium border border-slate-200 whitespace-nowrap">
+                                    No disp.
+                                   </div>`
+                            }
+                        </div>
+                        
+                        <!-- Botones de contacto -->
+                        <div class="grid grid-cols-4 md:grid-cols-2 gap-2 mt-auto">
+                            ${doc.whatsapp ? `<a href="https://wa.me/${doc.whatsapp}?text=${waMessage}" target="_blank" class="flex flex-col items-center justify-center p-2 sm:p-3 rounded-lg bg-green-50 text-green-600 hover:bg-green-100 transition-colors tooltip" title="WhatsApp"><i class="fa-brands fa-whatsapp text-xl mb-1"></i><span class="text-[10px] sm:text-xs font-medium">Chat</span></a>` : '<div class="flex flex-col items-center justify-center p-2 sm:p-3 rounded-lg text-slate-300"><i class="fa-brands fa-whatsapp text-xl mb-1"></i><span class="text-[10px] sm:text-xs font-medium">Chat</span></div>'}
+                            
+                            ${doc.telefono ? `<a href="tel:${doc.telefono.replace(/\s+/g, '')}" class="flex flex-col items-center justify-center p-2 sm:p-3 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors" title="Llamar"><i class="fa-solid fa-phone text-xl mb-1"></i><span class="text-[10px] sm:text-xs font-medium">Llamar</span></a>` : '<div class="flex flex-col items-center justify-center p-2 sm:p-3 rounded-lg text-slate-300"><i class="fa-solid fa-phone text-xl mb-1"></i><span class="text-[10px] sm:text-xs font-medium">Llamar</span></div>'}
+                            
+                            ${doc.email ? `<a href="mailto:${doc.email}" class="flex flex-col items-center justify-center p-2 sm:p-3 rounded-lg bg-purple-50 text-purple-600 hover:bg-purple-100 transition-colors" title="Correo"><i class="fa-regular fa-envelope text-xl mb-1"></i><span class="text-[10px] sm:text-xs font-medium">Email</span></a>` : '<div class="flex flex-col items-center justify-center p-2 sm:p-3 rounded-lg text-slate-300"><i class="fa-regular fa-envelope text-xl mb-1"></i><span class="text-[10px] sm:text-xs font-medium">Email</span></div>'}
+                            
+                            ${doc.mapaurl ? `<a href="${doc.mapaurl}" target="_blank" class="flex flex-col items-center justify-center p-2 sm:p-3 rounded-lg bg-red-50 text-red-500 hover:bg-red-100 transition-colors" title="Ver en Mapa"><i class="fa-solid fa-map-location-dot text-xl mb-1"></i><span class="text-[10px] sm:text-xs font-medium">Mapa</span></a>` : '<div class="flex flex-col items-center justify-center p-2 sm:p-3 rounded-lg text-slate-300"><i class="fa-solid fa-map-location-dot text-xl mb-1"></i><span class="text-[10px] sm:text-xs font-medium">Mapa</span></div>'}
+                        </div>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        // --- 3. LÓGICA DE FILTRADO Y BÚSQUEDA ---
+        
+        function filterDoctors() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            
+            doctoresFiltrados = doctoresData.filter(doc => {
+                // Manejo seguro por si algunos campos vienen vacíos desde sheets
+                const nombre = doc.nombre ? doc.nombre.toLowerCase() : '';
+                const especialidad = doc.especialidad ? doc.especialidad.toLowerCase() : '';
+                const subespecialidad = doc.subespecialidad ? doc.subespecialidad.toLowerCase() : '';
+                const categoria = doc.categoria ? doc.categoria.toLowerCase() : '';
+
+                const matchCategory = currentCategory === 'todos' || categoria === currentCategory;
+                const matchSearch = nombre.includes(searchTerm) || 
+                                    especialidad.includes(searchTerm) ||
+                                    subespecialidad.includes(searchTerm);
+                
+                return matchCategory && matchSearch;
+            });
+
+            updateUI();
+        }
+
+        // Actualizar la interfaz después de filtrar
+        function updateUI() {
+            renderGrid(doctoresFiltrados);
+
+            const noResultsEl = document.getElementById('noResults');
+            const mainViewEl = document.getElementById('mainView');
+
+            if (doctoresFiltrados.length === 0) {
+                noResultsEl.classList.remove('hidden');
+                mainViewEl.style.display = 'none';
+            } else {
+                noResultsEl.classList.add('hidden');
+                mainViewEl.style.display = 'block';
+            }
+        }
+
+        // --- 4. CONTROL DE INTERFAZ Y EVENTOS ---
+
+        document.addEventListener('DOMContentLoaded', () => {
+            
+            // Iniciar la obtención de datos
+            fetchGoogleSheetsData();
+
+            // Event listener para el input de búsqueda
+            document.getElementById('searchInput').addEventListener('input', filterDoctors);
+            
+            // La asignación inicial de eventos a filtros ahora se hace dentro de generarFiltros()
+        });
+        
+    </script>
+</body>
+</html>
