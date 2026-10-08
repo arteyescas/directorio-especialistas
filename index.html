@@ -30,21 +30,14 @@
         }
     </script>
     <style>
-        /* Estilos generales adicionales */
-        body {
-            background-color: #f8fafc; /* Gris muy claro para el fondo */
-        }
+        body { background-color: #f8fafc; }
         
-        /* Animación suave para hover en tarjetas */
-        .doctor-card {
-            transition: all 0.3s ease;
-        }
+        .doctor-card { transition: all 0.3s ease; }
         .doctor-card:hover {
             transform: translateY(-5px);
             box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
         }
 
-        /* Animaciones y estilos del Modal */
         .modal-overlay {
             opacity: 0;
             visibility: hidden;
@@ -62,168 +55,407 @@
             transform: scale(1) translateY(0);
         }
         
-        /* Ocultar barra de scroll para elementos horizontales fluidos */
-        .hide-scrollbar::-webkit-scrollbar {
-            display: none;
-        }
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
         .hide-scrollbar {
             -ms-overflow-style: none;
             scrollbar-width: none;
         }
 
-        /* Scrollbar personalizado para el texto largo del modal */
-        .custom-scrollbar::-webkit-scrollbar {
-            width: 6px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-track {
-            background: transparent; 
-        }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
         .custom-scrollbar::-webkit-scrollbar-thumb {
             background: #cbd5e1; 
             border-radius: 4px;
         }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-            background: #94a3b8; 
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        
+        /* Ocultar contenido debajo del login */
+        .content-blurred {
+            filter: blur(8px);
+            pointer-events: none;
+            user-select: none;
+            overflow: hidden;
+            height: 100vh;
         }
     </style>
 </head>
 <body class="text-slate-800 font-sans antialiased">
     
-    <header class="bg-white shadow-sm border-b border-slate-200 sticky top-0 z-40">
-        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-            <div class="flex flex-col items-center justify-center w-full">
-                
-                <!-- Logo y Título Centrados -->
-                <div class="flex items-center mb-5">
-                    <div class="bg-primary-500 text-white p-2.5 rounded-xl mr-3 shadow-md">
-                        <i class="fa-solid fa-heart-pulse text-2xl"></i>
-                    </div>
-                    <div class="text-left">
-                        <h1 class="text-2xl font-bold text-slate-800">Directorio Médico</h1>
-                        <p class="text-sm text-slate-500">Mis especialistas recomendados</p>
-                    </div>
+    <!-- Pantalla de Login / Acceso -->
+    <div id="authOverlay" class="fixed inset-0 bg-slate-900/90 z-[100] flex items-center justify-center p-4 backdrop-blur-md transition-opacity duration-500">
+        <div class="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden p-8">
+            <div class="text-center mb-8">
+                <div class="bg-primary-50 inline-block p-4 rounded-full mb-4">
+                    <i class="fa-solid fa-user-doctor text-4xl text-primary-500"></i>
                 </div>
-                
-                <!-- Controles de búsqueda y filtros Centrados -->
-                <div class="flex flex-col sm:flex-row items-center justify-center w-full gap-3 max-w-2xl">
-                    
-                    <!-- Buscador -->
-                    <div class="relative w-full sm:flex-1 flex-shrink-0">
-                        <input type="text" id="searchInput" placeholder="Buscar por nombre o especialidad..." class="w-full pl-11 pr-4 py-2.5 border border-slate-300 rounded-full focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent text-sm shadow-sm transition-shadow">
-                        <div class="absolute left-4 top-2.5 text-slate-400 text-lg">
-                            <i class="fa-solid fa-magnifying-glass"></i>
-                        </div>
-                    </div>
-                    
-                    <!-- Dropdown de Categorías -->
-                    <div class="relative w-full sm:w-64 flex-shrink-0">
-                        <select id="categoryFilter" class="w-full appearance-none bg-white border border-slate-300 text-slate-700 py-2.5 pl-4 pr-10 rounded-full focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent text-sm shadow-sm transition-shadow cursor-pointer truncate">
-                            <option value="todos">Todas las categorías</option>
-                        </select>
-                        <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-slate-400">
-                            <i class="fa-solid fa-chevron-down text-sm"></i>
-                        </div>
-                    </div>
-                    
-                </div>
+                <h2 class="text-2xl font-bold text-slate-800 mb-2">Acceso Privado</h2>
+                <p class="text-slate-500 text-sm">Ingresa tu nombre y la contraseña proporcionada para ver el directorio médico.</p>
             </div>
-        </div>
-    </header>
-
-    <main class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        
-        <!-- Estado de carga (Simulación de obtención de datos) -->
-        <div id="loadingState" class="flex flex-col items-center justify-center py-20">
-            <i class="fa-solid fa-circle-notch fa-spin text-4xl text-primary-500 mb-4"></i>
-            <p class="text-slate-500 font-medium">Cargando directorio desde Google Sheets...</p>
-        </div>
-
-        <div id="mainView" style="display: none;">
-            <!-- Contenedor del Grid ajustado a todo el ancho -->
-            <div id="doctorsGrid" class="grid grid-cols-1 gap-6 w-full">
-                <!-- Las tarjetas se insertarán aquí por JavaScript -->
-            </div>
-        </div>
-        
-        <!-- Mensaje de no resultados -->
-        <div id="noResults" class="hidden flex flex-col items-center justify-center py-16 text-center">
-            <div class="bg-slate-100 p-4 rounded-full mb-4">
-                <i class="fa-solid fa-user-doctor text-3xl text-slate-400"></i>
-            </div>
-            <h3 class="text-lg font-medium text-slate-800">No se encontraron especialistas</h3>
-            <p class="text-slate-500 mt-1 max-w-md">Intenta buscar con otros términos o selecciona otra categoría.</p>
-            <button onclick="document.getElementById('searchInput').value=''; filterDoctors();" class="mt-4 text-primary-600 font-medium hover:text-primary-700 underline decoration-2 underline-offset-2">Limpiar búsqueda</button>
-        </div>
-
-    </main>
-
-    <!-- Ventana Emergente (Modal) para leer detalles completos -->
-    <div id="doctorModal" class="modal-overlay fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 sm:p-6">
-        <!-- Contenedor principal del modal -->
-        <div class="modal-content bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh]">
             
-            <!-- Header del Modal -->
-            <div class="flex justify-between items-start p-5 sm:p-6 border-b border-slate-100 bg-white">
-                <div class="flex items-center space-x-4 min-w-0">
-                    <img id="modalFoto" src="" alt="Doctor" class="w-14 h-14 sm:w-16 sm:h-16 rounded-full object-cover border-2 border-primary-100 shadow-sm flex-shrink-0">
-                    <div class="min-w-0">
-                        <h3 id="modalNombre" class="text-lg sm:text-xl font-bold text-slate-800 leading-tight truncate"></h3>
-                        <span id="modalEspecialidad" class="inline-block mt-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary-50 text-primary-700 truncate max-w-full"></span>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Tu Nombre</label>
+                    <div class="relative">
+                        <input type="text" id="accessName" placeholder="Ej: Ana María" class="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent text-sm transition-shadow bg-slate-50">
+                        <i class="fa-regular fa-user absolute left-3.5 top-3.5 text-slate-400"></i>
                     </div>
                 </div>
-                <button onclick="closeModal()" class="flex-shrink-0 text-slate-400 hover:text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-full w-8 h-8 flex items-center justify-center transition-colors focus:outline-none ml-2">
-                    <i class="fa-solid fa-xmark"></i>
+                
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Contraseña</label>
+                    <div class="relative">
+                        <input type="password" id="accessPassword" placeholder="••••••••" class="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent text-sm transition-shadow bg-slate-50" onkeypress="if(event.key === 'Enter') window.checkPassword()">
+                        <i class="fa-solid fa-lock absolute left-3.5 top-3.5 text-slate-400"></i>
+                    </div>
+                </div>
+                
+                <p id="loginError" class="text-red-500 text-xs font-medium hidden text-center mt-2"></p>
+                
+                <button onclick="window.checkPassword()" id="loginBtn" class="w-full bg-primary-500 hover:bg-primary-600 text-white font-semibold py-3 rounded-xl shadow-md shadow-primary-500/30 transition-all active:scale-[0.98] mt-4">
+                    <span id="loginBtnText">Acceder al Directorio</span>
                 </button>
-            </div>
-            
-            <!-- Cuerpo del Modal (Donde va el texto largo y se puede hacer scroll) -->
-            <div class="p-5 sm:p-6 overflow-y-auto custom-scrollbar bg-slate-50 flex-1">
-                <h4 class="text-sm font-bold text-slate-800 mb-3 flex items-center"><i class="fa-solid fa-quote-left text-primary-400 mr-2"></i> Mi recomendación:</h4>
-                <p id="modalDescripcion" class="text-slate-600 whitespace-pre-line leading-relaxed text-sm"></p>
-                
-                <div class="mt-6 pt-4 border-t border-slate-200/60">
-                    <div class="flex items-start text-sm text-slate-600">
-                        <i class="fa-solid fa-location-dot w-5 mt-0.5 text-slate-400 flex-shrink-0"></i>
-                        <span id="modalDireccion" class="font-medium"></span>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Footer del Modal (Botones de contacto clonados) -->
-            <div id="modalContactos" class="bg-white p-4 border-t border-slate-100">
-                <!-- Se inyectan dinámicamente -->
             </div>
         </div>
     </div>
 
-    <footer class="bg-slate-900 text-slate-300 py-8 mt-12">
-        <div class="max-w-6xl mx-auto px-4 text-center">
-            <i class="fa-solid fa-stethoscope text-2xl text-primary-500 mb-4"></i>
-            <p class="text-sm">Directorio Médico Personal &copy; 2026.</p>
-            <p class="text-xs text-slate-500 mt-2">Los datos presentados aquí provienen de una hoja de Google Sheets.</p>
-        </div>
-    </footer>
+    <!-- Contenedor Principal (Inicialmente difuminado) -->
+    <div id="mainAppWrapper" class="content-blurred transition-all duration-700">
+        
+        <header class="bg-white shadow-sm border-b border-slate-200 sticky top-0 z-40">
+            <div class="max-w-4xl mx-auto px-4 sm:px-6 py-6">
+                <div class="flex flex-col items-center justify-center w-full">
+                    
+                    <!-- Logo y Título Centrados Superior -->
+                    <div class="flex items-center mb-6">
+                        <div class="bg-primary-500 text-white p-2.5 rounded-xl mr-3 shadow-md">
+                            <i class="fa-solid fa-heart-pulse text-2xl"></i>
+                        </div>
+                        <div class="text-left">
+                            <h1 class="text-2xl font-bold text-slate-800">Directorio Médico</h1>
+                            <p class="text-sm text-slate-500">Mis especialistas recomendados</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Controles de búsqueda y filtros alineados al centro -->
+                    <div class="flex flex-col sm:flex-row items-center justify-center w-full gap-3">
+                        
+                        <!-- Buscador más ancho -->
+                        <div class="relative w-full sm:w-80 md:w-96 flex-shrink-0">
+                            <input type="text" id="searchInput" placeholder="Buscar por nombre o especialidad..." class="w-full pl-11 pr-4 py-2.5 border border-slate-300 rounded-full focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent text-sm shadow-sm transition-shadow">
+                            <div class="absolute left-4 top-2.5 text-slate-400 text-lg">
+                                <i class="fa-solid fa-magnifying-glass"></i>
+                            </div>
+                        </div>
+                        
+                        <!-- Dropdown de Categorías al lado -->
+                        <div class="relative w-full sm:w-56 flex-shrink-0">
+                            <select id="categoryFilter" class="w-full appearance-none bg-white border border-slate-300 text-slate-700 py-2.5 pl-4 pr-10 rounded-full focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent text-sm shadow-sm transition-shadow cursor-pointer truncate font-medium">
+                                <option value="todos">Todas las categorías</option>
+                            </select>
+                            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-slate-400">
+                                <i class="fa-solid fa-chevron-down text-sm"></i>
+                            </div>
+                        </div>
+                        
+                    </div>
+                </div>
+            </div>
+        </header>
 
-    <script>
+        <main class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            
+            <div id="loadingState" class="flex flex-col items-center justify-center py-20">
+                <i class="fa-solid fa-circle-notch fa-spin text-4xl text-primary-500 mb-4"></i>
+                <p class="text-slate-500 font-medium">Cargando directorio desde Google Sheets...</p>
+            </div>
+
+            <div id="mainView" style="display: none;">
+                <!-- Contenedor feed un renglón por componente -->
+                <div id="doctorsGrid" class="flex flex-col gap-6 w-full">
+                    <!-- Las tarjetas horizontales se insertarán aquí por JavaScript -->
+                </div>
+            </div>
+            
+            <div id="noResults" class="hidden flex flex-col items-center justify-center py-16 text-center">
+                <div class="bg-slate-100 p-4 rounded-full mb-4">
+                    <i class="fa-solid fa-user-doctor text-3xl text-slate-400"></i>
+                </div>
+                <h3 class="text-lg font-medium text-slate-800">No se encontraron especialistas</h3>
+                <p class="text-slate-500 mt-1 max-w-md">Intenta buscar con otros términos o selecciona otra categoría.</p>
+                <button onclick="document.getElementById('searchInput').value=''; window.filterDoctors();" class="mt-4 text-primary-600 font-medium hover:text-primary-700 underline decoration-2 underline-offset-2">Limpiar búsqueda</button>
+            </div>
+        </main>
+
+        <!-- Ventana Emergente Info Doctor -->
+        <div id="doctorModal" class="modal-overlay fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 sm:p-6">
+            <div class="modal-content bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh]">
+                
+                <div class="flex justify-between items-start p-5 sm:p-6 border-b border-slate-100 bg-white">
+                    <div class="flex items-center space-x-4 min-w-0">
+                        <img id="modalFoto" src="" alt="Doctor" class="w-14 h-14 sm:w-16 sm:h-16 rounded-full object-cover border-2 border-primary-100 shadow-sm flex-shrink-0">
+                        <div class="min-w-0">
+                            <h3 id="modalNombre" class="text-lg sm:text-xl font-bold text-slate-800 leading-tight truncate"></h3>
+                            <span id="modalEspecialidad" class="inline-block mt-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary-50 text-primary-700 truncate max-w-full"></span>
+                        </div>
+                    </div>
+                    <button onclick="window.closeModal()" class="flex-shrink-0 text-slate-400 hover:text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-full w-8 h-8 flex items-center justify-center transition-colors ml-2">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+                
+                <div class="p-5 sm:p-6 overflow-y-auto custom-scrollbar bg-slate-50 flex-1">
+                    <h4 class="text-sm font-bold text-slate-800 mb-3 flex items-center"><i class="fa-solid fa-quote-left text-primary-400 mr-2"></i> Mi recomendación:</h4>
+                    <p id="modalDescripcion" class="text-slate-600 whitespace-pre-line leading-relaxed text-sm"></p>
+                    
+                    <div class="mt-6 pt-4 border-t border-slate-200/60">
+                        <div class="flex items-start text-sm text-slate-600">
+                            <i class="fa-solid fa-location-dot w-5 mt-0.5 text-slate-400 flex-shrink-0"></i>
+                            <span id="modalDireccion" class="font-medium"></span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="modalContactos" class="bg-white p-4 border-t border-slate-100">
+                    <!-- Dinámico -->
+                </div>
+            </div>
+        </div>
+        
+        <!-- Modal Admin Login -->
+        <div id="adminLoginModal" class="modal-overlay fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
+            <div class="modal-content bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 text-center">
+                <i class="fa-solid fa-user-shield text-4xl text-slate-700 mb-4"></i>
+                <h3 class="text-lg font-bold text-slate-800 mb-4">Acceso de Administrador</h3>
+                <input type="password" id="adminPasswordInput" placeholder="Contraseña de Admin" class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-slate-500 mb-2">
+                <p id="adminError" class="text-red-500 text-xs hidden mb-4">Contraseña incorrecta</p>
+                <div class="flex gap-2 mt-4">
+                    <button onclick="window.closeAdminLogin()" class="flex-1 px-4 py-2 bg-slate-100 text-slate-600 rounded-lg hover:bg-slate-200 transition-colors">Cancelar</button>
+                    <button onclick="window.verifyAdmin()" class="flex-1 px-4 py-2 bg-slate-800 text-white rounded-lg hover:bg-slate-700 transition-colors">Entrar</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal Admin Dashboard (Registro de Visitas) -->
+        <div id="adminDashboardModal" class="modal-overlay fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[60] flex items-center justify-center p-4 sm:p-6">
+            <div class="modal-content bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[85vh]">
+                <div class="flex justify-between items-center p-5 border-b border-slate-100 bg-slate-50">
+                    <div class="flex items-center">
+                        <i class="fa-solid fa-list-check text-xl text-slate-700 mr-3"></i>
+                        <h3 class="text-lg font-bold text-slate-800">Registro de Visitas</h3>
+                    </div>
+                    <button onclick="window.closeAdminDashboard()" class="text-slate-400 hover:text-slate-600 bg-white shadow-sm border border-slate-200 rounded-full w-8 h-8 flex items-center justify-center transition-colors">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+                
+                <div class="p-0 overflow-y-auto custom-scrollbar flex-1">
+                    <table class="w-full text-left text-sm text-slate-600">
+                        <thead class="bg-slate-100 text-slate-700 uppercase text-xs font-semibold sticky top-0">
+                            <tr>
+                                <th class="px-6 py-3">Nombre del Visitante</th>
+                                <th class="px-6 py-3 text-right">Fecha y Hora de Acceso</th>
+                            </tr>
+                        </thead>
+                        <tbody id="adminTableBody" class="divide-y divide-slate-100 bg-white">
+                            <!-- Se inyecta dinámicamente -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <footer class="bg-slate-900 text-slate-300 py-8 mt-12 relative">
+            <div class="max-w-4xl mx-auto px-4 text-center">
+                <i class="fa-solid fa-stethoscope text-2xl text-primary-500 mb-4"></i>
+                <p class="text-sm">Directorio Médico Personal &copy; 2026. <i onclick="window.openAdminLogin()" class="fa-solid fa-lock text-slate-600 hover:text-slate-300 cursor-pointer text-xs ml-1 transition-colors" title="Acceso Admin"></i></p>
+                <p class="text-xs text-slate-500 mt-2">Los datos presentados aquí provienen de una hoja de Google Sheets.</p>
+            </div>
+        </footer>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, addDoc, collection, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Setup Firebase 
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'med-dir-app-123';
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+        
+        // Evitar fallos si no hay config real, mock it if needed in offline environment
+        let db, auth;
+        try {
+            const app = initializeApp(firebaseConfig);
+            auth = getAuth(app);
+            db = getFirestore(app);
+        } catch (e) {
+            console.warn("Firebase no se pudo inicializar (probablemente no hay config provista).");
+        }
+
+        async function ensureAuth() {
+            if (!auth) return false;
+            if (auth.currentUser) return true;
+            
+            try {
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
+                }
+                return true;
+            } catch (e) {
+                console.error("Error autenticando", e);
+                return false;
+            }
+        }
+
+        // Setup Config 
         const GOOGLE_SHEETS_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSaIN3KY82cPuYCcq9NEhMCSyMY6F5G22FBa_TPfjidInsR7NRJvUmAVl95yNOEbUPk-sliDjLBpim9/pub?output=csv';
         let doctoresData = [];
         let currentCategory = 'todos';
         let doctoresFiltrados = [];
+        
+        
+        // Lógica de validación de visitantes
+        window.checkPassword = async function() {
+            const pass = document.getElementById('accessPassword').value;
+            const name = document.getElementById('accessName').value.trim();
+            const errorLabel = document.getElementById('loginError');
+            
+            if (pass === 'PareDeSufrir2026' && name !== '') {
+                errorLabel.classList.add('hidden');
+                document.getElementById('loginBtnText').textContent = "Ingresando...";
+                
+                // Guardar en la nube (Log de visita)
+                if(db) {
+                    const authSuccess = await ensureAuth();
+                    if(authSuccess) {
+                        try {
+                            const visitorsRef = collection(db, 'artifacts', appId, 'public', 'data', 'visitors');
+                            await addDoc(visitorsRef, {
+                                nombre: name,
+                                fechaHora: new Date().toISOString()
+                            });
+                        } catch (e) {
+                            console.error("No se pudo registrar la visita", e);
+                        }
+                    }
+                }
 
-        // Función auxiliar para convertir CSV a JSON (sin usar librerías externas)
-        function csvToJson(csv) {
+                // Ocultar modal y mostrar app
+                document.getElementById('authOverlay').style.opacity = '0';
+                setTimeout(() => {
+                    document.getElementById('authOverlay').style.display = 'none';
+                    const mainWrap = document.getElementById('mainAppWrapper');
+                    mainWrap.classList.remove('content-blurred');
+                    mainWrap.style.overflow = 'auto';
+                    mainWrap.style.height = 'auto';
+                }, 500);
+                
+                // Iniciar la app guardando sesión
+                sessionStorage.setItem('medDirAuth', 'true');
+                window.fetchGoogleSheetsData();
+                
+            } else {
+                errorLabel.classList.remove('hidden');
+                if (name === '') errorLabel.textContent = 'Por favor, escribe tu nombre.';
+                else errorLabel.textContent = 'Contraseña incorrecta.';
+            }
+        }
+
+        // Lógica del Administrador
+        window.openAdminLogin = function() {
+            document.getElementById('adminLoginModal').classList.add('active');
+            document.getElementById('adminPasswordInput').value = '';
+            document.getElementById('adminError').classList.add('hidden');
+        }
+
+        window.closeAdminLogin = function() {
+            document.getElementById('adminLoginModal').classList.remove('active');
+        }
+
+        window.verifyAdmin = function() {
+            const pass = document.getElementById('adminPasswordInput').value;
+            if(pass === 'SoyAdmin2026') {
+                window.closeAdminLogin();
+                loadAdminDashboard();
+            } else {
+                document.getElementById('adminError').classList.remove('hidden');
+            }
+        }
+        
+        window.closeAdminDashboard = function() {
+            document.getElementById('adminDashboardModal').classList.remove('active');
+        }
+
+        async function loadAdminDashboard() {
+            const table = document.getElementById('adminTableBody');
+            table.innerHTML = '<tr><td colspan="2" class="px-6 py-4 text-center text-slate-500"><i class="fa-solid fa-spinner fa-spin mr-2"></i> Cargando datos de la nube...</td></tr>';
+            document.getElementById('adminDashboardModal').classList.add('active');
+            
+            if(!db) {
+                table.innerHTML = '<tr><td colspan="2" class="px-6 py-4 text-center text-red-500">La conexión a la nube no está configurada.</td></tr>';
+                return;
+            }
+
+            const authSuccess = await ensureAuth();
+            if(!authSuccess) {
+                table.innerHTML = '<tr><td colspan="2" class="px-6 py-4 text-center text-red-500">Error de permisos al leer nube.</td></tr>';
+                return;
+            }
+
+            try {
+                // Obtener todos los registros de la colección de visitantes públicos (Strict rules)
+                const visitorsRef = collection(db, 'artifacts', appId, 'public', 'data', 'visitors');
+                const snapshot = await getDocs(visitorsRef);
+                
+                let records = [];
+                snapshot.forEach(doc => {
+                    records.push(doc.data());
+                });
+
+                // Ordenar localmente por fecha (los más recientes primero) como dicen las reglas para evitar complex queries
+                records.sort((a, b) => new Date(b.fechaHora) - new Date(a.fechaHora));
+
+                if(records.length === 0) {
+                    table.innerHTML = '<tr><td colspan="2" class="px-6 py-4 text-center text-slate-500">Aún no hay visitas registradas.</td></tr>';
+                    return;
+                }
+
+                table.innerHTML = '';
+                records.forEach(rec => {
+                    const row = document.createElement('tr');
+                    
+                    // Formatear la fecha a texto legible
+                    const dateObj = new Date(rec.fechaHora);
+                    const formattedDate = dateObj.toLocaleString('es-MX', { 
+                        year: 'numeric', month: 'short', day: 'numeric', 
+                        hour: '2-digit', minute:'2-digit' 
+                    });
+
+                    row.innerHTML = `
+                        <td class="px-6 py-4 font-medium text-slate-800">${rec.nombre}</td>
+                        <td class="px-6 py-4 text-right text-slate-500">${formattedDate}</td>
+                    `;
+                    table.appendChild(row);
+                });
+                
+            } catch(e) {
+                console.error("Error al leer logs", e);
+                table.innerHTML = '<tr><td colspan="2" class="px-6 py-4 text-center text-red-500">Ocurrió un error leyendo los registros.</td></tr>';
+            }
+        }
+
+
+        window.csvToJson = function(csv) {
             const lines = csv.split(/\r?\n/);
-            if (lines.length < 2) return []; // Retornar vacío si no hay suficientes datos
+            if (lines.length < 2) return [];
 
-            // Obtener encabezados
             const headers = lines[0].split(',').map(header => header.trim().toLowerCase());
             const result = [];
 
-            // Iterar sobre las filas de datos
             for (let i = 1; i < lines.length; i++) {
-                if (!lines[i].trim()) continue; // Saltar líneas vacías
-
-                // Manejar comas dentro de valores entre comillas (Ej: "Torre Médica, Consultorio 1")
+                if (!lines[i].trim()) continue;
                 let obj = {};
                 let currentLine = lines[i];
                 let row = [];
@@ -231,96 +463,67 @@
                 let currentValue = '';
 
                 for (let char of currentLine) {
-                    if (char === '"') {
-                        inQuotes = !inQuotes;
-                    } else if (char === ',' && !inQuotes) {
+                    if (char === '"') inQuotes = !inQuotes;
+                    else if (char === ',' && !inQuotes) {
                         row.push(currentValue);
                         currentValue = '';
-                    } else {
-                        currentValue += char;
-                    }
+                    } else currentValue += char;
                 }
-                row.push(currentValue); // Agregar el último valor
+                row.push(currentValue); 
 
-                // Mapear valores a los encabezados
                 headers.forEach((header, index) => {
-                    // Limpiar comillas iniciales y finales si existen
                     let val = (row[index] || '').trim();
-                    if (val.startsWith('"') && val.endsWith('"')) {
-                        val = val.substring(1, val.length - 1);
-                    }
+                    if (val.startsWith('"') && val.endsWith('"')) val = val.substring(1, val.length - 1);
                     obj[header] = val;
                 });
                 
-                // Generar un ID único simple si no existe
                 if(!obj.id) obj.id = i;
-                
                 result.push(obj);
             }
             return result;
         }
 
-        async function fetchGoogleSheetsData() {
+        window.fetchGoogleSheetsData = async function() {
             try {
                 const response = await fetch(GOOGLE_SHEETS_CSV_URL);
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                
                 const csvText = await response.text();
-                
-                // Convertir CSV a Array de Objetos
-                doctoresData = csvToJson(csvText);
-                
-                // Generar categorías únicas dinámicamente basadas en los datos
-                generarFiltros(doctoresData);
-
+                doctoresData = window.csvToJson(csvText);
+                window.generarFiltros(doctoresData);
                 doctoresFiltrados = [...doctoresData];
                 
-                // Ocultar loader y mostrar UI
                 document.getElementById('loadingState').style.display = 'none';
                 document.getElementById('mainView').style.display = 'block';
-                
-                updateUI();
+                window.updateUI();
 
             } catch (error) {
-                console.error("Error al cargar los datos desde Google Sheets:", error);
+                console.error("Error Sheets:", error);
                 document.getElementById('loadingState').innerHTML = `
                     <i class="fa-solid fa-triangle-exclamation text-4xl text-red-500 mb-4"></i>
                     <p class="text-slate-700 font-medium text-center">No se pudieron cargar los datos.</p>
-                    <p class="text-slate-500 text-sm mt-2 text-center max-w-md">Verifica que el enlace de Google Sheets sea correcto y esté publicado en la web como CSV.</p>
                 `;
             }
         }
 
-        function generarFiltros(data) {
+        window.generarFiltros = function(data) {
             const select = document.getElementById('categoryFilter');
-            // Mantener la opción de "Todos" por defecto
             select.innerHTML = '<option value="todos">Todas las categorías</option>';
-            
-            // Obtener categorías únicas, ignorando vacías
             const categorias = [...new Set(data.map(doc => doc.categoria).filter(cat => cat))];
             
             categorias.forEach(cat => {
-                // Capitalizar primera letra para mostrar
                 const catLabel = cat.charAt(0).toUpperCase() + cat.slice(1);
-                
                 const option = document.createElement('option');
                 option.value = cat;
                 option.textContent = catLabel;
-                
                 select.appendChild(option);
             });
         }
 
-        // --- 2. FUNCIONES PARA RENDERIZAR LAS VISTAS ---
-
-        // Función para abrir la ventana modal
-        function openModal(id) {
-            // Buscar la información del doctor exacto al que se le dio clic
+        window.openModal = function(id) {
             const doc = doctoresData.find(d => d.id == id);
             if (!doc) return;
 
-            // Cargar los datos en el Modal
             const fotoUrl = doc.foto || `https://placehold.co/150x150/14b8a6/ffffff?text=${doc.nombre ? doc.nombre.substring(0,2).toUpperCase() : 'DR'}`;
             document.getElementById('modalFoto').src = fotoUrl;
             document.getElementById('modalNombre').textContent = doc.nombre || 'Nombre no disponible';
@@ -328,92 +531,91 @@
             document.getElementById('modalDescripcion').textContent = doc.descripcion || 'Sin descripción disponible.';
             document.getElementById('modalDireccion').textContent = doc.direccion || 'Dirección no disponible';
 
-            // Crear los botones de contacto idénticos a los de la tarjeta
-            const contactosHtml = `
-                <div class="flex flex-col gap-2">
-                    <!-- Teléfono Principal (No clickeable) -->
-                    ${doc.telefono 
-                        ? `<div class="flex items-center justify-center p-2.5 rounded-xl bg-slate-50 text-slate-700 border border-slate-200 shadow-sm w-full">
-                            <i class="fa-solid fa-phone text-blue-500 mr-2.5"></i>
-                            <span class="text-sm font-bold tracking-wide">${doc.telefono}</span>
-                           </div>` 
-                        : `<div class="flex items-center justify-center p-2.5 rounded-xl bg-slate-50 text-slate-400 border border-slate-100 w-full">
-                            <i class="fa-solid fa-phone-slash mr-2.5"></i>
-                            <span class="text-sm font-medium">Sin teléfono</span>
-                           </div>`
-                    }
-                    
-                    <!-- WhatsApp (No clickeable) -->
-                    ${doc.whatsapp 
-                        ? `<div class="flex items-center justify-center p-2.5 rounded-xl bg-slate-50 text-slate-700 border border-slate-200 shadow-sm w-full">
-                            <i class="fa-brands fa-whatsapp text-green-500 text-lg mr-2.5"></i>
-                            <span class="text-sm font-bold tracking-wide">${doc.whatsapp}</span>
-                           </div>` 
-                        : `<div class="flex items-center justify-center p-2.5 rounded-xl bg-slate-50 text-slate-400 border border-slate-100 w-full">
-                            <i class="fa-brands fa-whatsapp text-lg mr-2.5 opacity-50"></i>
-                            <span class="text-sm font-medium">Sin WhatsApp</span>
-                           </div>`
-                    }
-                    
-                    <!-- Email (No clickeable) -->
-                    ${doc.email 
-                        ? `<div class="flex items-center p-2.5 rounded-xl bg-slate-50 text-slate-700 border border-slate-200 shadow-sm w-full min-w-0">
-                            <i class="fa-regular fa-envelope text-purple-500 text-lg sm:text-xl ml-1 mr-2 flex-shrink-0"></i>
-                            <div class="overflow-x-auto hide-scrollbar min-w-0 w-full text-center pr-2">
-                                <span class="text-[10.5px] sm:text-[11.5px] font-bold tracking-tight whitespace-nowrap select-all cursor-text">${doc.email}</span>
-                            </div>
-                           </div>` 
-                        : `<div class="flex items-center justify-center p-2.5 rounded-xl bg-slate-50 text-slate-400 border border-slate-100 w-full">
-                            <i class="fa-regular fa-envelope text-lg sm:text-xl mr-2 opacity-50 flex-shrink-0"></i>
-                            <span class="text-[10.5px] sm:text-[11.5px] font-medium">Sin Email</span>
-                           </div>`
-                    }
-                    
-                    <!-- Mapa (Clickeable) -->
-                    ${doc.mapaurl 
-                        ? `<a href="${doc.mapaurl}" target="_blank" class="flex items-center justify-center p-2.5 rounded-xl bg-red-50 text-red-600 hover:bg-red-100 border border-red-100 transition-colors shadow-sm w-full">
-                            <i class="fa-solid fa-map-location-dot text-lg mr-2.5 flex-shrink-0"></i>
-                            <span class="text-sm font-bold tracking-wide">Abrir Mapa</span>
-                           </a>` 
-                        : `<div class="flex items-center justify-center p-2.5 rounded-xl bg-slate-50 text-slate-400 border border-slate-100 w-full">
-                            <i class="fa-solid fa-map-location-dot text-lg mr-2.5 opacity-50 flex-shrink-0"></i>
-                            <span class="text-sm font-medium">Sin Mapa</span>
-                           </div>`
-                    }
-                </div>
-            `;
-            document.getElementById('modalContactos').innerHTML = contactosHtml;
+            document.getElementById('modalContactos').innerHTML = window.getContactosHtml(doc);
 
-            // Mostrar el modal y bloquear el scroll de la página de fondo
             const modal = document.getElementById('doctorModal');
             modal.classList.add('active');
             document.body.style.overflow = 'hidden';
         }
 
-        // Función para cerrar la ventana modal
-        function closeModal() {
+        window.closeModal = function() {
             const modal = document.getElementById('doctorModal');
             modal.classList.remove('active');
-            document.body.style.overflow = ''; // Restaurar scroll
+            document.body.style.overflow = '';
         }
 
-        // Evento para cerrar el modal si el usuario hace clic fuera de la caja blanca
         document.getElementById('doctorModal').addEventListener('click', function(e) {
-            if (e.target === this) {
-                closeModal();
-            }
+            if (e.target === this) window.closeModal();
         });
 
-        function renderGrid(doctores) {
+        window.getContactosHtml = function(doc) {
+            return `
+                <div class="flex flex-col gap-2.5">
+                    ${doc.telefono 
+                        ? `<div class="flex items-center p-3 sm:p-3.5 rounded-xl bg-slate-50 text-slate-700 border border-slate-200 shadow-sm w-full">
+                            <i class="fa-solid fa-phone text-blue-500 text-lg mr-3"></i>
+                            <div>
+                                <p class="text-[10px] uppercase font-bold text-slate-400 tracking-wider mb-0.5">Llamar</p>
+                                <span class="text-sm font-bold tracking-wide">${doc.telefono}</span>
+                            </div>
+                           </div>` 
+                        : `<div class="flex items-center justify-center p-3 rounded-xl bg-slate-50 text-slate-400 border border-slate-100 w-full">
+                            <i class="fa-solid fa-phone-slash mr-2.5"></i>
+                            <span class="text-sm font-medium">Sin teléfono</span>
+                           </div>`
+                    }
+                    
+                    ${doc.whatsapp 
+                        ? `<div class="flex items-center p-3 sm:p-3.5 rounded-xl bg-slate-50 text-slate-700 border border-slate-200 shadow-sm w-full">
+                            <i class="fa-brands fa-whatsapp text-green-500 text-xl mr-3"></i>
+                            <div>
+                                <p class="text-[10px] uppercase font-bold text-slate-400 tracking-wider mb-0.5">WhatsApp</p>
+                                <span class="text-sm font-bold tracking-wide">${doc.whatsapp}</span>
+                            </div>
+                           </div>` 
+                        : `<div class="flex items-center justify-center p-3 rounded-xl bg-slate-50 text-slate-400 border border-slate-100 w-full">
+                            <i class="fa-brands fa-whatsapp text-lg mr-2.5 opacity-50"></i>
+                            <span class="text-sm font-medium">Sin WhatsApp</span>
+                           </div>`
+                    }
+                    
+                    <div class="grid grid-cols-2 gap-2 mt-1">
+                        ${doc.email 
+                            ? `<div class="flex flex-col items-center justify-center p-2.5 rounded-xl bg-slate-50 text-slate-700 border border-slate-200 shadow-sm overflow-hidden w-full group relative" title="${doc.email}">
+                                <i class="fa-regular fa-envelope text-purple-500 text-lg mb-1"></i>
+                                <div class="w-full px-1 overflow-x-auto hide-scrollbar text-center cursor-pointer">
+                                    <span class="text-[11px] text-xs font-semibold whitespace-nowrap" onclick="document.execCommand('selectAll',false,null)">${doc.email}</span>
+                                </div>
+                               </div>` 
+                            : `<div class="flex flex-col items-center justify-center p-2.5 rounded-xl bg-slate-50 text-slate-400 border border-slate-100 w-full">
+                                <i class="fa-regular fa-envelope text-lg opacity-50 mb-1"></i>
+                                <span class="text-[11px] font-medium">Sin Email</span>
+                               </div>`
+                        }
+                        
+                        ${doc.mapaurl 
+                            ? `<a href="${doc.mapaurl}" target="_blank" class="flex flex-col items-center justify-center p-2.5 rounded-xl bg-red-50 text-red-600 hover:bg-red-100 border border-red-100 transition-colors shadow-sm w-full h-full">
+                                <i class="fa-solid fa-map-location-dot text-lg mb-1"></i>
+                                <span class="text-xs font-bold whitespace-nowrap">Abrir Mapa</span>
+                               </a>` 
+                            : `<div class="flex flex-col items-center justify-center p-2.5 rounded-xl bg-slate-50 text-slate-400 border border-slate-100 w-full h-full">
+                                <i class="fa-solid fa-map-location-dot text-lg opacity-50 mb-1"></i>
+                                <span class="text-[11px] font-medium">Sin Mapa</span>
+                               </div>`
+                        }
+                    </div>
+                </div>
+            `;
+        }
+
+        window.renderGrid = function(doctores) {
             const container = document.getElementById('doctorsGrid');
             container.innerHTML = '';
 
             doctores.forEach(doc => {
                 const card = document.createElement('div');
-                // Ajustado para expandirse a lo ancho y usar formato horizontal en pantallas grandes
-                card.className = 'doctor-card bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden flex flex-col md:flex-row w-full';
+                card.className = 'doctor-card bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden flex flex-col md:flex-row w-full h-full';
                 
-                // Manejar valores vacíos o faltantes de forma segura
                 const fotoUrl = doc.foto || `https://placehold.co/150x150/14b8a6/ffffff?text=${doc.nombre ? doc.nombre.substring(0,2).toUpperCase() : 'DR'}`;
                 const nombreDoc = doc.nombre || 'Nombre no disponible';
                 const especialidadDoc = doc.especialidad || 'Especialidad no especificada';
@@ -422,145 +624,67 @@
                 const descripcionDoc = doc.descripcion || 'Sin descripción disponible.';
 
                 card.innerHTML = `
-                    <div class="p-5 sm:p-6 flex flex-col flex-1 min-w-0">
-                        <div class="flex justify-between items-start mb-4 gap-3">
-                            <div class="flex items-center space-x-3 sm:space-x-4 flex-1 min-w-0">
-                                <img src="${fotoUrl}" alt="${nombreDoc}" class="w-14 h-14 sm:w-16 sm:h-16 rounded-full object-cover border-2 border-primary-100 shadow-sm flex-shrink-0" onerror="this.src='https://placehold.co/150x150/14b8a6/ffffff?text=?'">
-                                <div class="min-w-0 flex-1">
-                                    <h3 class="text-base sm:text-xl font-bold text-slate-800 leading-tight truncate" title="${nombreDoc}">${nombreDoc}</h3>
-                                    <span class="inline-block mt-1 px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-full text-xs font-medium bg-primary-50 text-primary-700 truncate max-w-full" title="${especialidadDoc}">
-                                        ${especialidadDoc}
-                                    </span>
-                                </div>
-                            </div>
-                            <!-- Costo en móvil (Oculto en desktop) -->
-                            <div class="md:hidden flex-shrink-0">
-                                ${doc.costo 
-                                    ? `<div class="flex items-center text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg text-sm font-bold border border-emerald-100 whitespace-nowrap shadow-sm">
-                                        <i class="fa-solid fa-money-bill-1-wave mr-1.5 text-xs opacity-70"></i> ${doc.costo}
-                                       </div>` 
-                                    : `<div class="flex items-center text-slate-500 bg-slate-100 px-2 py-1 rounded-lg text-xs font-medium border border-slate-200 whitespace-nowrap">
-                                        No disp.
-                                       </div>`
-                                }
+                    <div class="p-5 flex flex-col flex-1 min-w-0">
+                        <div class="flex items-start mb-4 gap-4">
+                            <img src="${fotoUrl}" alt="${nombreDoc}" class="w-16 h-16 rounded-full object-cover border-2 border-primary-100 shadow-sm flex-shrink-0" onerror="this.src='https://placehold.co/150x150/14b8a6/ffffff?text=?'">
+                            <div class="min-w-0 flex-1 pt-1">
+                                <h3 class="text-lg md:text-xl font-bold text-slate-800 leading-tight truncate" title="${nombreDoc}">${nombreDoc}</h3>
+                                <span class="inline-block mt-1.5 px-3 py-1 rounded-full text-xs font-medium bg-primary-50 text-primary-700 truncate max-w-full" title="${especialidadDoc}">
+                                    ${especialidadDoc}
+                                </span>
                             </div>
                         </div>
                         
-                        <!-- Contenido y descripción -->
-                        <div class="flex-1">
+                        <div class="flex-1 flex flex-col">
                             ${subespecialidadHtml}
-                            <p class="text-sm text-slate-600 mb-3 sm:mb-4 line-clamp-2" title="${direccionDoc}"><i class="fa-solid fa-location-dot w-5 text-slate-400"></i> ${direccionDoc}</p>
+                            <p class="text-sm text-slate-600 mb-3 line-clamp-2" title="${direccionDoc}"><i class="fa-solid fa-location-dot w-5 text-slate-400"></i> ${direccionDoc}</p>
                             
-                            <div class="bg-slate-50 rounded-xl p-3 sm:p-4 border border-slate-100/50 mt-auto">
-                                <p class="text-sm text-slate-600 italic line-clamp-3">"${descripcionDoc}"</p>
-                                ${descripcionDoc.length > 90 ? `<button onclick="openModal('${doc.id}')" class="text-primary-600 text-xs font-semibold mt-2 hover:text-primary-700 transition-colors cursor-pointer flex items-center focus:outline-none"><i class="fa-solid fa-expand mr-1.5 opacity-70"></i> Leer reseña completa</button>` : ''}
+                            <div class="bg-slate-50 rounded-xl p-3 border border-slate-100/50 mt-auto">
+                                <p class="text-sm text-slate-600 italic line-clamp-2">"${descripcionDoc}"</p>
+                                ${descripcionDoc.length > 90 ? `<button onclick="window.openModal('${doc.id}')" class="text-primary-600 text-xs font-semibold mt-2 hover:text-primary-700 transition-colors cursor-pointer flex items-center focus:outline-none"><i class="fa-solid fa-expand mr-1.5 opacity-70"></i> Leer reseña completa</button>` : ''}
                             </div>
                         </div>
                     </div>
                     
-                    <!-- Panel derecho (Desktop) / Inferior (Móvil) con acciones -->
-                    <div class="bg-slate-50 p-4 sm:p-6 border-t md:border-t-0 md:border-l border-slate-100 flex flex-col justify-between md:w-64 lg:w-72 flex-shrink-0">
-                        
-                        <!-- Costo en Desktop -->
-                        <div class="hidden md:flex justify-end mb-4">
+                    <div class="bg-slate-50 p-5 border-t md:border-t-0 md:border-l border-slate-100 flex flex-col justify-between md:w-[280px] flex-shrink-0">
+                        <div class="flex justify-end mb-4">
                             ${doc.costo 
-                                ? `<div class="flex items-center text-emerald-700 bg-emerald-50 px-3 py-1.5 rounded-lg text-sm font-bold border border-emerald-100 whitespace-nowrap shadow-sm">
-                                    <i class="fa-solid fa-money-bill-1-wave mr-1.5 text-xs opacity-70"></i> ${doc.costo}
+                                ? `<div class="flex items-center text-emerald-700 bg-emerald-50 px-3 py-1.5 rounded-lg text-sm font-bold border border-emerald-100 whitespace-nowrap shadow-sm flex-shrink-0">
+                                    <i class="fa-solid fa-money-bill-1-wave mr-1.5 opacity-70"></i> ${doc.costo}
                                    </div>` 
-                                : `<div class="flex items-center text-slate-500 bg-slate-100 px-3 py-1.5 rounded-lg text-xs font-medium border border-slate-200 whitespace-nowrap">
+                                : `<div class="flex items-center text-slate-500 bg-slate-100 px-3 py-1.5 rounded-lg text-xs font-medium border border-slate-200 whitespace-nowrap flex-shrink-0">
                                     No disp.
                                    </div>`
                             }
                         </div>
                         
-                        <!-- Botones de contacto -->
-                        <div class="flex flex-col gap-2 mt-auto">
-                            <!-- Teléfono Principal (No clickeable) -->
-                            ${doc.telefono 
-                                ? `<div class="flex items-center justify-center p-2.5 rounded-xl bg-slate-50 text-slate-700 border border-slate-200 shadow-sm w-full">
-                                    <i class="fa-solid fa-phone text-blue-500 mr-2.5"></i>
-                                    <span class="text-sm sm:text-base font-bold tracking-wide">${doc.telefono}</span>
-                                   </div>` 
-                                : `<div class="flex items-center justify-center p-2.5 rounded-xl bg-slate-50 text-slate-400 border border-slate-100 w-full">
-                                    <i class="fa-solid fa-phone-slash mr-2.5"></i>
-                                    <span class="text-sm font-medium">Sin teléfono</span>
-                                   </div>`
-                            }
-                            
-                            <!-- WhatsApp (No clickeable) -->
-                            ${doc.whatsapp 
-                                ? `<div class="flex items-center justify-center p-2.5 rounded-xl bg-slate-50 text-slate-700 border border-slate-200 shadow-sm w-full">
-                                    <i class="fa-brands fa-whatsapp text-green-500 text-lg sm:text-xl mr-2.5"></i>
-                                    <span class="text-sm sm:text-base font-bold tracking-wide">${doc.whatsapp}</span>
-                                   </div>` 
-                                : `<div class="flex items-center justify-center p-2.5 rounded-xl bg-slate-50 text-slate-400 border border-slate-100 w-full">
-                                    <i class="fa-brands fa-whatsapp text-lg sm:text-xl mr-2.5 opacity-50"></i>
-                                    <span class="text-sm font-medium">Sin WhatsApp</span>
-                                   </div>`
-                            }
-                            
-                            <!-- Email (No clickeable) -->
-                            ${doc.email 
-                                ? `<div class="flex items-center p-2.5 rounded-xl bg-slate-50 text-slate-700 border border-slate-200 shadow-sm w-full min-w-0">
-                                    <i class="fa-regular fa-envelope text-purple-500 text-lg sm:text-xl ml-1 mr-2 flex-shrink-0"></i>
-                                    <div class="overflow-x-auto hide-scrollbar min-w-0 w-full text-center pr-2">
-                                        <span class="text-[10.5px] sm:text-[11.5px] font-bold tracking-tight whitespace-nowrap select-all cursor-text">${doc.email}</span>
-                                    </div>
-                                   </div>` 
-                                : `<div class="flex items-center justify-center p-2.5 rounded-xl bg-slate-50 text-slate-400 border border-slate-100 w-full">
-                                    <i class="fa-regular fa-envelope text-lg sm:text-xl mr-2 opacity-50 flex-shrink-0"></i>
-                                    <span class="text-[10.5px] sm:text-[11.5px] font-medium">Sin Email</span>
-                                   </div>`
-                            }
-                            
-                            <!-- Mapa (Clickeable) -->
-                            ${doc.mapaurl 
-                                ? `<a href="${doc.mapaurl}" target="_blank" class="flex items-center justify-center p-2.5 rounded-xl bg-red-50 text-red-600 hover:bg-red-100 border border-red-100 transition-colors shadow-sm w-full">
-                                    <i class="fa-solid fa-map-location-dot text-lg sm:text-xl mr-2.5 flex-shrink-0"></i>
-                                    <span class="text-sm font-bold tracking-wide">Abrir Mapa</span>
-                                   </a>` 
-                                : `<div class="flex items-center justify-center p-2.5 rounded-xl bg-slate-50 text-slate-400 border border-slate-100 w-full">
-                                    <i class="fa-solid fa-map-location-dot text-lg sm:text-xl mr-2.5 opacity-50 flex-shrink-0"></i>
-                                    <span class="text-sm font-medium">Sin Mapa</span>
-                                   </div>`
-                            }
-                        </div>
+                        ${window.getContactosHtml(doc)}
                     </div>
                 `;
                 container.appendChild(card);
             });
         }
 
-        // --- 3. LÓGICA DE FILTRADO Y BÚSQUEDA ---
-        
-        function filterDoctors() {
+        window.filterDoctors = function() {
             const searchTerm = document.getElementById('searchInput').value.toLowerCase();
-            
             doctoresFiltrados = doctoresData.filter(doc => {
-                // Manejo seguro por si algunos campos vienen vacíos desde sheets
                 const nombre = doc.nombre ? doc.nombre.toLowerCase() : '';
                 const especialidad = doc.especialidad ? doc.especialidad.toLowerCase() : '';
                 const subespecialidad = doc.subespecialidad ? doc.subespecialidad.toLowerCase() : '';
                 const categoria = doc.categoria ? doc.categoria.toLowerCase() : '';
 
                 const matchCategory = currentCategory === 'todos' || categoria === currentCategory;
-                const matchSearch = nombre.includes(searchTerm) || 
-                                    especialidad.includes(searchTerm) ||
-                                    subespecialidad.includes(searchTerm);
+                const matchSearch = nombre.includes(searchTerm) || especialidad.includes(searchTerm) || subespecialidad.includes(searchTerm);
                 
                 return matchCategory && matchSearch;
             });
-
-            updateUI();
+            window.updateUI();
         }
 
-        // Actualizar la interfaz después de filtrar
-        function updateUI() {
-            renderGrid(doctoresFiltrados);
-
+        window.updateUI = function() {
+            window.renderGrid(doctoresFiltrados);
             const noResultsEl = document.getElementById('noResults');
             const mainViewEl = document.getElementById('mainView');
-
             if (doctoresFiltrados.length === 0) {
                 noResultsEl.classList.remove('hidden');
                 mainViewEl.style.display = 'none';
@@ -570,20 +694,22 @@
             }
         }
 
-        // --- 4. CONTROL DE INTERFAZ Y EVENTOS ---
-
+        // Init Events
         document.addEventListener('DOMContentLoaded', () => {
-            
-            // Iniciar la obtención de datos
-            fetchGoogleSheetsData();
+            // Verificar si la persona ya había ingresado la contraseña en esta sesión (para no pedirsela cada vez que recarga la página)
+            if(sessionStorage.getItem('medDirAuth') === 'true') {
+                document.getElementById('authOverlay').style.display = 'none';
+                const mainWrap = document.getElementById('mainAppWrapper');
+                mainWrap.classList.remove('content-blurred');
+                mainWrap.style.overflow = 'auto';
+                mainWrap.style.height = 'auto';
+                window.fetchGoogleSheetsData();
+            }
 
-            // Event listener para el input de búsqueda
-            document.getElementById('searchInput').addEventListener('input', filterDoctors);
-            
-            // Event listener para el dropdown de categorías
+            document.getElementById('searchInput').addEventListener('input', window.filterDoctors);
             document.getElementById('categoryFilter').addEventListener('change', (e) => {
                 currentCategory = e.target.value;
-                filterDoctors();
+                window.filterDoctors();
             });
         });
         
