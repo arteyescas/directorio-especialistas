@@ -89,9 +89,7 @@
 </head>
 <body class="text-slate-800 font-sans antialiased">
 
-    <header class="bg-white shadow-sm sticky top-0 z-10">
-        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-            <div class="flex flex-col sm:flex-row justify-between items-center">
+                <div class="flex flex-col sm:flex-row justify-between items-center">
                 <div class="flex items-center mb-4 sm:mb-0">
                     <div class="bg-primary-500 text-white p-2 rounded-lg mr-3 shadow-md">
                         <i class="fa-solid fa-heart-pulse text-xl"></i>
@@ -102,24 +100,26 @@
                     </div>
                 </div>
                 
-                <!-- Controles de navegación y búsqueda -->
-                <div class="flex items-center w-full sm:w-auto space-x-4">
-                    <div class="relative w-full sm:w-64">
+                <!-- Controles de navegación y filtros -->
+                <div class="flex flex-col sm:flex-row items-center w-full sm:w-auto gap-3 mt-4 sm:mt-0">
+                    <!-- Buscador -->
+                    <div class="relative w-full sm:w-80 md:w-96 flex-shrink-0">
                         <input type="text" id="searchInput" placeholder="Buscar por nombre o especialidad..." class="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-full focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent text-sm shadow-sm transition-shadow">
                         <div class="absolute left-3 top-2.5 text-slate-400">
                             <i class="fa-solid fa-magnifying-glass"></i>
                         </div>
                     </div>
+                    
+                    <!-- Dropdown de Categorías -->
+                    <div class="relative w-full sm:w-56 flex-shrink-0">
+                        <select id="categoryFilter" class="w-full appearance-none bg-white border border-slate-300 text-slate-700 py-2 pl-4 pr-10 rounded-full focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent text-sm shadow-sm transition-shadow cursor-pointer truncate">
+                            <option value="todos">Todas las categorías</option>
+                        </select>
+                        <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-slate-400">
+                            <i class="fa-solid fa-chevron-down text-sm"></i>
+                        </div>
+                    </div>
                 </div>
-            </div>
-            
-            <!-- Filtros por especialidad -->
-            <div class="mt-4 flex overflow-x-auto pb-2 space-x-2 hide-scrollbar" id="filtersContainer">
-                <button class="filter-btn active whitespace-nowrap px-4 py-1.5 rounded-full text-sm font-medium bg-primary-50 text-primary-700 border border-primary-200 transition-colors" data-filter="todos">Todos</button>
-                <button class="filter-btn whitespace-nowrap px-4 py-1.5 rounded-full text-sm font-medium bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 transition-colors" data-filter="cardiologia">Cardiología</button>
-                <button class="filter-btn whitespace-nowrap px-4 py-1.5 rounded-full text-sm font-medium bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 transition-colors" data-filter="pediatria">Pediatría</button>
-                <button class="filter-btn whitespace-nowrap px-4 py-1.5 rounded-full text-sm font-medium bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 transition-colors" data-filter="dermatologia">Dermatología</button>
-                <button class="filter-btn whitespace-nowrap px-4 py-1.5 rounded-full text-sm font-medium bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 transition-colors" data-filter="odontologia">Odontología</button>
             </div>
         </div>
     </header>
@@ -287,9 +287,9 @@
         }
 
         function generarFiltros(data) {
-            const container = document.getElementById('filtersContainer');
-            // Mantener el botón de "Todos"
-            container.innerHTML = '<button class="filter-btn active whitespace-nowrap px-4 py-1.5 rounded-full text-sm font-medium bg-primary-50 text-primary-700 border border-primary-200 transition-colors" data-filter="todos">Todos</button>';
+            const select = document.getElementById('categoryFilter');
+            // Mantener la opción de "Todos" por defecto
+            select.innerHTML = '<option value="todos">Todas las categorías</option>';
             
             // Obtener categorías únicas, ignorando vacías
             const categorias = [...new Set(data.map(doc => doc.categoria).filter(cat => cat))];
@@ -298,37 +298,11 @@
                 // Capitalizar primera letra para mostrar
                 const catLabel = cat.charAt(0).toUpperCase() + cat.slice(1);
                 
-                const btn = document.createElement('button');
-                btn.className = "filter-btn whitespace-nowrap px-4 py-1.5 rounded-full text-sm font-medium bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 transition-colors";
-                btn.setAttribute('data-filter', cat);
-                btn.textContent = catLabel;
+                const option = document.createElement('option');
+                option.value = cat;
+                option.textContent = catLabel;
                 
-                container.appendChild(btn);
-            });
-            
-            // Re-asignar event listeners a los nuevos botones
-            asignarEventosFiltros();
-        }
-
-        function asignarEventosFiltros() {
-            const botonesFiltro = document.querySelectorAll('.filter-btn');
-            botonesFiltro.forEach(btn => {
-                btn.addEventListener('click', (e) => {
-                    // Remover estado activo de todos los botones
-                    botonesFiltro.forEach(b => {
-                        b.classList.remove('active', 'bg-primary-50', 'text-primary-700', 'border-primary-200');
-                        b.classList.add('bg-white', 'text-slate-600', 'border-slate-200', 'hover:bg-slate-50');
-                    });
-                    
-                    // Agregar estado activo al botón clickeado
-                    const btnClickeado = e.currentTarget;
-                    btnClickeado.classList.remove('bg-white', 'text-slate-600', 'border-slate-200', 'hover:bg-slate-50');
-                    btnClickeado.classList.add('active', 'bg-primary-50', 'text-primary-700', 'border-primary-200');
-                    
-                    // Actualizar categoría actual y aplicar filtro
-                    currentCategory = btnClickeado.getAttribute('data-filter');
-                    filterDoctors();
-                });
+                select.appendChild(option);
             });
         }
 
@@ -600,7 +574,11 @@
             // Event listener para el input de búsqueda
             document.getElementById('searchInput').addEventListener('input', filterDoctors);
             
-            // La asignación inicial de eventos a filtros ahora se hace dentro de generarFiltros()
+            // Event listener para el dropdown de categorías
+            document.getElementById('categoryFilter').addEventListener('change', (e) => {
+                currentCategory = e.target.value;
+                filterDoctors();
+            });
         });
         
     </script>
