@@ -191,11 +191,11 @@
             <div class="modal-content bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh]">
                 
                 <div class="flex justify-between items-start p-5 sm:p-6 border-b border-slate-100 bg-white">
-                    <div class="flex items-center space-x-4 min-w-0">
+                    <div class="flex items-center space-x-4 min-w-0 flex-1">
                         <img id="modalFoto" src="" alt="Doctor" class="w-14 h-14 sm:w-16 sm:h-16 rounded-full object-cover border-2 border-primary-100 shadow-sm flex-shrink-0">
-                        <div class="min-w-0">
-                            <h3 id="modalNombre" class="text-lg sm:text-xl font-bold text-slate-800 leading-tight truncate"></h3>
-                            <span id="modalEspecialidad" class="inline-block mt-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary-50 text-primary-700 truncate max-w-full"></span>
+                        <div class="min-w-0 flex-1">
+                            <h3 id="modalNombre" class="text-lg sm:text-xl font-bold text-slate-800 leading-tight break-words"></h3>
+                            <span id="modalEspecialidad" class="inline-block mt-1 px-2.5 py-1 rounded-lg text-xs font-medium bg-primary-50 text-primary-700"></span>
                         </div>
                     </div>
                     <button onclick="window.closeModal()" class="flex-shrink-0 text-slate-400 hover:text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-full w-8 h-8 flex items-center justify-center transition-colors ml-2">
@@ -275,21 +275,38 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, addDoc, collection, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // Setup Firebase 
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'med-dir-app-123';
-        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+        // ==========================================
+        // 🚨 PEGA AQUÍ TU CONFIGURACIÓN DE FIREBASE 🚨
+        // ==========================================
+        const firebaseConfig = {
+            // Descomenta estas líneas y pon tus datos reales de Firebase aquí:
+            // apiKey: "TU_API_KEY",
+            // authDomain: "tu-proyecto.firebaseapp.com",
+            // projectId: "tu-proyecto",
+            // storageBucket: "tu-proyecto.appspot.com",
+            // messagingSenderId: "123456789",
+            // appId: "1:123456789:web:abcdef"
+        };
         
-        // Evitar fallos si no hay config real, mock it if needed in offline environment
+        // Inicialización de la base de datos
         let db, auth;
+        let useLocalStorage = false;
+        
         try {
-            const app = initializeApp(firebaseConfig);
-            auth = getAuth(app);
-            db = getFirestore(app);
+            if(Object.keys(firebaseConfig).length > 0 && firebaseConfig.apiKey) {
+                const app = initializeApp(firebaseConfig);
+                auth = getAuth(app);
+                db = getFirestore(app);
+            } else {
+                useLocalStorage = true;
+                console.warn("⚠️ MODO LOCAL: Faltan las llaves de Firebase. Las visitas no se guardarán en la nube.");
+            }
         } catch (e) {
-            console.warn("Firebase no se pudo inicializar (probablemente no hay config provista).");
+            console.error("Error iniciando Firebase", e);
+            useLocalStorage = true;
         }
 
         async function ensureAuth() {
@@ -297,11 +314,7 @@
             if (auth.currentUser) return true;
             
             try {
-                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                    await signInWithCustomToken(auth, __initial_auth_token);
-                } else {
-                    await signInAnonymously(auth);
-                }
+                await signInAnonymously(auth);
                 return true;
             } catch (e) {
                 console.error("Error autenticando", e);
@@ -326,20 +339,27 @@
                 errorLabel.classList.add('hidden');
                 document.getElementById('loginBtnText').textContent = "Ingresando...";
                 
-                // Guardar en la nube (Log de visita)
+                const visitRecord = {
+                    nombre: name,
+                    fechaHora: new Date().toISOString()
+                };
+
+                // Guardar en la nube o localmente
                 if(db) {
                     const authSuccess = await ensureAuth();
                     if(authSuccess) {
                         try {
-                            const visitorsRef = collection(db, 'artifacts', appId, 'public', 'data', 'visitors');
-                            await addDoc(visitorsRef, {
-                                nombre: name,
-                                fechaHora: new Date().toISOString()
-                            });
+                            const visitorsRef = collection(db, 'visitantes');
+                            await addDoc(visitorsRef, visitRecord);
                         } catch (e) {
                             console.error("No se pudo registrar la visita", e);
                         }
                     }
+                } else if (useLocalStorage) {
+                    // Simulación local
+                    let localVisitors = JSON.parse(localStorage.getItem('medDirVisitors') || '[]');
+                    localVisitors.push(visitRecord);
+                    localStorage.setItem('medDirVisitors', JSON.stringify(localVisitors));
                 }
 
                 // Ocultar modal y mostrar app
@@ -390,62 +410,65 @@
 
         async function loadAdminDashboard() {
             const table = document.getElementById('adminTableBody');
-            table.innerHTML = '<tr><td colspan="2" class="px-6 py-4 text-center text-slate-500"><i class="fa-solid fa-spinner fa-spin mr-2"></i> Cargando datos de la nube...</td></tr>';
+            table.innerHTML = '<tr><td colspan="2" class="px-6 py-4 text-center text-slate-500"><i class="fa-solid fa-spinner fa-spin mr-2"></i> Cargando datos...</td></tr>';
             document.getElementById('adminDashboardModal').classList.add('active');
             
-            if(!db) {
-                table.innerHTML = '<tr><td colspan="2" class="px-6 py-4 text-center text-red-500">La conexión a la nube no está configurada.</td></tr>';
-                return;
-            }
+            let records = [];
 
-            const authSuccess = await ensureAuth();
-            if(!authSuccess) {
-                table.innerHTML = '<tr><td colspan="2" class="px-6 py-4 text-center text-red-500">Error de permisos al leer nube.</td></tr>';
-                return;
-            }
-
-            try {
-                // Obtener todos los registros de la colección de visitantes públicos (Strict rules)
-                const visitorsRef = collection(db, 'artifacts', appId, 'public', 'data', 'visitors');
-                const snapshot = await getDocs(visitorsRef);
-                
-                let records = [];
-                snapshot.forEach(doc => {
-                    records.push(doc.data());
-                });
-
-                // Ordenar localmente por fecha (los más recientes primero) como dicen las reglas para evitar complex queries
-                records.sort((a, b) => new Date(b.fechaHora) - new Date(a.fechaHora));
-
-                if(records.length === 0) {
-                    table.innerHTML = '<tr><td colspan="2" class="px-6 py-4 text-center text-slate-500">Aún no hay visitas registradas.</td></tr>';
+            if(db) {
+                const authSuccess = await ensureAuth();
+                if(!authSuccess) {
+                    table.innerHTML = '<tr><td colspan="2" class="px-6 py-4 text-center text-red-500">Error de permisos al leer nube.</td></tr>';
                     return;
                 }
-
-                table.innerHTML = '';
-                records.forEach(rec => {
-                    const row = document.createElement('tr');
-                    
-                    // Formatear la fecha a texto legible
-                    const dateObj = new Date(rec.fechaHora);
-                    const formattedDate = dateObj.toLocaleString('es-MX', { 
-                        year: 'numeric', month: 'short', day: 'numeric', 
-                        hour: '2-digit', minute:'2-digit' 
-                    });
-
-                    row.innerHTML = `
-                        <td class="px-6 py-4 font-medium text-slate-800">${rec.nombre}</td>
-                        <td class="px-6 py-4 text-right text-slate-500">${formattedDate}</td>
-                    `;
-                    table.appendChild(row);
-                });
-                
-            } catch(e) {
-                console.error("Error al leer logs", e);
-                table.innerHTML = '<tr><td colspan="2" class="px-6 py-4 text-center text-red-500">Ocurrió un error leyendo los registros.</td></tr>';
+                try {
+                    const visitorsRef = collection(db, 'visitantes');
+                    const snapshot = await getDocs(visitorsRef);
+                    snapshot.forEach(doc => { records.push(doc.data()); });
+                } catch(e) {
+                    console.error("Error al leer logs", e);
+                    table.innerHTML = '<tr><td colspan="2" class="px-6 py-4 text-center text-red-500">Ocurrió un error leyendo los registros de la nube. Revisa las reglas de Firestore.</td></tr>';
+                    return;
+                }
+            } else if (useLocalStorage) {
+                // Leer datos simulados locales
+                records = JSON.parse(localStorage.getItem('medDirVisitors') || '[]');
             }
-        }
 
+            // Ordenar localmente por fecha (los más recientes primero)
+            records.sort((a, b) => new Date(b.fechaHora) - new Date(a.fechaHora));
+
+            if(records.length === 0) {
+                table.innerHTML = `<tr><td colspan="2" class="px-6 py-4 text-center text-slate-500">Aún no hay visitas registradas.<br><span class="text-xs text-orange-500 mt-1 block">${useLocalStorage ? 'Nota: Estás usando almacenamiento local (Simulación).' : ''}</span></td></tr>`;
+                return;
+            }
+
+            table.innerHTML = '';
+            
+            // Aviso de simulación si aplica
+            if (useLocalStorage) {
+                const warningRow = document.createElement('tr');
+                warningRow.innerHTML = '<td colspan="2" class="px-6 py-2 text-center text-xs font-medium text-orange-600 bg-orange-50 border-b border-orange-100"><i class="fa-solid fa-triangle-exclamation mr-1"></i> Modo Simulación: Los registros actuales solo se guardan en tu computadora.</td>';
+                table.appendChild(warningRow);
+            }
+
+            records.forEach(rec => {
+                const row = document.createElement('tr');
+                
+                // Formatear la fecha a texto legible
+                const dateObj = new Date(rec.fechaHora);
+                const formattedDate = dateObj.toLocaleString('es-MX', { 
+                    year: 'numeric', month: 'short', day: 'numeric', 
+                    hour: '2-digit', minute:'2-digit' 
+                });
+
+                row.innerHTML = `
+                    <td class="px-6 py-4 font-medium text-slate-800">${rec.nombre}</td>
+                    <td class="px-6 py-4 text-right text-slate-500">${formattedDate}</td>
+                `;
+                table.appendChild(row);
+            });
+        }
 
         window.csvToJson = function(csv) {
             const lines = csv.split(/\r?\n/);
@@ -509,13 +532,25 @@
         window.generarFiltros = function(data) {
             const select = document.getElementById('categoryFilter');
             select.innerHTML = '<option value="todos">Todas las categorías</option>';
-            const categorias = [...new Set(data.map(doc => doc.categoria).filter(cat => cat))];
             
-            categorias.forEach(cat => {
-                const catLabel = cat.charAt(0).toUpperCase() + cat.slice(1);
+            // Usamos un Map para evitar categorías duplicadas por culpa de mayúsculas/minúsculas o espacios extra
+            const categoriasMap = new Map();
+            
+            data.forEach(doc => {
+                if(doc.categoria) {
+                    const val = doc.categoria.trim().toLowerCase(); // Valor interno limpio
+                    const label = doc.categoria.trim(); // Etiqueta visual
+                    if(!categoriasMap.has(val)) {
+                        // Guardamos la primera letra en mayúscula para que se vea bonito
+                        categoriasMap.set(val, label.charAt(0).toUpperCase() + label.slice(1));
+                    }
+                }
+            });
+            
+            categoriasMap.forEach((label, val) => {
                 const option = document.createElement('option');
-                option.value = cat;
-                option.textContent = catLabel;
+                option.value = val;
+                option.textContent = label;
                 select.appendChild(option);
             });
         }
@@ -619,7 +654,7 @@
                 const fotoUrl = doc.foto || `https://placehold.co/150x150/14b8a6/ffffff?text=${doc.nombre ? doc.nombre.substring(0,2).toUpperCase() : 'DR'}`;
                 const nombreDoc = doc.nombre || 'Nombre no disponible';
                 const especialidadDoc = doc.especialidad || 'Especialidad no especificada';
-                const subespecialidadHtml = doc.subespecialidad ? `<p class="text-sm text-slate-600 mb-2 truncate" title="${doc.subespecialidad}"><i class="fa-solid fa-stethoscope w-5 text-slate-400"></i> ${doc.subespecialidad}</p>` : '';
+                const subespecialidadHtml = doc.subespecialidad ? `<p class="text-sm text-slate-600 mb-2 leading-relaxed"><i class="fa-solid fa-stethoscope w-5 text-slate-400"></i> ${doc.subespecialidad}</p>` : '';
                 const direccionDoc = doc.direccion || 'Dirección no disponible';
                 const descripcionDoc = doc.descripcion || 'Sin descripción disponible.';
 
@@ -628,8 +663,8 @@
                         <div class="flex items-start mb-4 gap-4">
                             <img src="${fotoUrl}" alt="${nombreDoc}" class="w-16 h-16 rounded-full object-cover border-2 border-primary-100 shadow-sm flex-shrink-0" onerror="this.src='https://placehold.co/150x150/14b8a6/ffffff?text=?'">
                             <div class="min-w-0 flex-1 pt-1">
-                                <h3 class="text-lg md:text-xl font-bold text-slate-800 leading-tight truncate" title="${nombreDoc}">${nombreDoc}</h3>
-                                <span class="inline-block mt-1.5 px-3 py-1 rounded-full text-xs font-medium bg-primary-50 text-primary-700 truncate max-w-full" title="${especialidadDoc}">
+                                <h3 class="text-lg md:text-xl font-bold text-slate-800 leading-tight break-words">${nombreDoc}</h3>
+                                <span class="inline-block mt-1.5 px-3 py-1 rounded-lg text-xs font-medium bg-primary-50 text-primary-700">
                                     ${especialidadDoc}
                                 </span>
                             </div>
@@ -671,8 +706,9 @@
                 const nombre = doc.nombre ? doc.nombre.toLowerCase() : '';
                 const especialidad = doc.especialidad ? doc.especialidad.toLowerCase() : '';
                 const subespecialidad = doc.subespecialidad ? doc.subespecialidad.toLowerCase() : '';
-                const categoria = doc.categoria ? doc.categoria.toLowerCase() : '';
+                const categoria = doc.categoria ? doc.categoria.trim().toLowerCase() : '';
 
+                // Ahora comparamos limpiamente el valor interno
                 const matchCategory = currentCategory === 'todos' || categoria === currentCategory;
                 const matchSearch = nombre.includes(searchTerm) || especialidad.includes(searchTerm) || subespecialidad.includes(searchTerm);
                 
