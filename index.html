@@ -508,28 +508,67 @@
             return result;
         }
 
-        window.fetchGoogleSheetsData = async function() {
-            try {
-                const response = await fetch(GOOGLE_SHEETS_CSV_URL);
-                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-                
-                const csvText = await response.text();
-                doctoresData = window.csvToJson(csvText);
-                window.generarFiltros(doctoresData);
-                doctoresFiltrados = [...doctoresData];
-                
-                document.getElementById('loadingState').style.display = 'none';
-                document.getElementById('mainView').style.display = 'block';
-                window.updateUI();
+window.fetchGoogleSheetsData = async function() {
+    // 1. Mostrar estado de carga (por si es un reintento)
+    const loadingState = document.getElementById('loadingState');
+    const mainView = document.getElementById('mainView');
+    const noResults = document.getElementById('noResults');
+    
+    loadingState.style.display = 'flex';
+    loadingState.innerHTML = `
+        <i class="fa-solid fa-circle-notch fa-spin text-4xl text-primary-500 mb-4"></i>
+        <p class="text-slate-500 font-medium">Conectando de forma segura...</p>
+    `;
+    mainView.style.display = 'none';
+    noResults.classList.add('hidden');
 
-            } catch (error) {
-                console.error("Error Sheets:", error);
-                document.getElementById('loadingState').innerHTML = `
-                    <i class="fa-solid fa-triangle-exclamation text-4xl text-red-500 mb-4"></i>
-                    <p class="text-slate-700 font-medium text-center">No se pudieron cargar los datos.</p>
-                `;
-            }
+    // 2. Crear un controlador de tiempo límite (8 segundos máximo)
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 8000);
+
+    try {
+        // Hacemos la petición a Google Sheets agregando el controlador de tiempo
+        const response = await fetch(GOOGLE_SHEETS_CSV_URL, { 
+            signal: controller.signal,
+            cache: 'no-store' // Evitar que el celular entregue un archivo corrupto de memoria
+        });
+        
+        // Limpiamos el temporizador si contestó a tiempo
+        clearTimeout(timeoutId);
+
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        
+        const csvText = await response.text();
+        doctoresData = window.csvToJson(csvText);
+        window.generarFiltros(doctoresData);
+        doctoresFiltrados = [...doctoresData];
+        
+        loadingState.style.display = 'none';
+        mainView.style.display = 'block';
+        window.updateUI();
+
+    } catch (error) {
+        console.error("Error Sheets:", error);
+        
+        // Si el error fue por tiempo de espera (AbortError) o bloqueo de red
+        let mensajeError = "La red celular está inestable o bloqueando la conexión.";
+        if (error.name === 'AbortError') {
+            mensajeError = "La conexión tardó demasiado en responder.";
         }
+
+        // Mostrar interfaz de error con botón de reintento en vez de pantalla blanca
+        loadingState.innerHTML = `
+            <div class="text-center p-6 bg-red-50 rounded-2xl border border-red-100 max-w-sm mx-auto">
+                <i class="fa-solid fa-wifi text-4xl text-red-400 mb-4"></i>
+                <h3 class="text-lg font-bold text-slate-800 mb-2">Error de Conexión</h3>
+                <p class="text-slate-600 text-sm mb-4">${mensajeError}</p>
+                <button onclick="window.fetchGoogleSheetsData()" class="bg-red-500 hover:bg-red-600 text-white font-medium py-2 px-6 rounded-xl transition-colors shadow-sm">
+                    Reintentar
+                </button>
+            </div>
+        `;
+    }
+}
 
         window.generarFiltros = function(data) {
             const select = document.getElementById('categoryFilter');
